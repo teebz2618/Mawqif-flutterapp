@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1010122754215",
+    "project_id": "mawqif-76bad",
+    "storage_bucket": "mawqif-76bad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1010122754215:android:9b4b5136a16fa065833382",
+        "android_client_info": {
+          "package_name": "mawqif.com.mawqif"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEVbVxsRwAiN-LNgL0CgKUFGnUUUHqO1U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
