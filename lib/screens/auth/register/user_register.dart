@@ -59,7 +59,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
               const SizedBox(height: 6),
               Center(
                 child: Text(
-                  "Fill your information below or register\nwith your social account.",
+                  "Fill your information below to register.",
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey, fontSize: 13),
                 ),
@@ -116,7 +116,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                 ],
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 height: 45,
@@ -135,23 +135,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                 ),
               ),
 
-              const SizedBox(height: 30),
-              Row(
-                children: const [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text("Or sign up with"),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [_buildGoogleSignUpButton()],
-              ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
               Center(
                 child: GestureDetector(
                   onTap: () => Get.toNamed(AppRoutes.login),
@@ -216,7 +200,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
         controller: _controller.passwordController,
         obscureText: _obscurePassword,
         decoration: InputDecoration(
-          hintText: '****************',
+          hintText: '••••••••••',
           hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
           suffixIcon: IconButton(
             icon: Icon(
@@ -239,23 +223,6 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
             borderSide: BorderSide(color: Colors.brown.shade600, width: 1.5),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildGoogleSignUpButton() {
-    return InkWell(
-      onTap: () {
-        // TODO: Trigger Google Sign-In logic here
-      },
-      borderRadius: BorderRadius.circular(40),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade400, width: 1.5),
-        ),
-        child: Image.asset('assets/icons/google.png', height: 28, width: 28),
       ),
     );
   }

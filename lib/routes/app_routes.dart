@@ -9,6 +9,7 @@ import '../screens/splash/pre_splash_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import 'package:mawqif/screens/user/user_dashboard.dart';
 import '../screens/welcome/welcome_screen.dart';
+import '../screens/auth/register/password_prompt.dart';
 
 class AppRoutes {
   static const preSplash = '/';
@@ -17,6 +18,7 @@ class AppRoutes {
   static const login = '/login';
   static const forgot = '/forgot';
   static const userRegister = '/userRegister';
+  static const passwordPrompt = '/passwordPrompt';
   static const brandRegister = '/brandRegister';
   static const userDashboard = '/userDashboard';
   static const adminDashboard = '/adminDashboard';
@@ -29,6 +31,7 @@ class AppRoutes {
     GetPage(name: login, page: () => SignInScreen()),
     GetPage(name: forgot, page: () => const ForgotPasswordScreen()),
     GetPage(name: userRegister, page: () => UserSignUpScreen()),
+    GetPage(name: passwordPrompt, page: () => PasswordPromptScreen()),
     GetPage(name: brandRegister, page: () => BrandSignUpScreen()),
     GetPage(name: userDashboard, page: () => UserDashboard()),
     GetPage(name: adminDashboard, page: () => AdminDashboard()),

@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../models/app_user.dart';
 import '../../../routes/app_routes.dart';
 
 class SignInController extends GetxController {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final obscurePassword = true.obs;
+  final rememberMe = false.obs;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final RxBool rememberMe = false.obs;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   void signIn() async {
     final email = emailController.text.trim();
@@ -24,91 +27,109 @@ class SignInController extends GetxController {
       Get.snackbar("Error", "Please fill in all fields");
       return;
     }
-
+    EasyLoading.show(status: "Signing in...");
     try {
-      // Show loading
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
-
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      final uid = userCredential.user!.uid;
+      final doc = await _firestore.collection('users').doc(uid).get();
 
-      final user = userCredential.user;
-      if (user == null) {
-        Get.back(); // remove loading
-        Get.snackbar("Error", "Sign-in failed. Try again.");
-        return;
-      }
-
-      // Check if email is verified
-      if (!user.emailVerified) {
-        Get.back();
-        Get.snackbar(
-          "Email Not Verified",
-          "Please verify your email before logging in.",
-          backgroundColor: Colors.orange.shade100,
-        );
-        return;
-      }
-
-      // Get user data from Firestore
-      final doc = await _firestore.collection('users').doc(user.uid).get();
       if (!doc.exists) {
-        Get.back();
+        EasyLoading.dismiss();
         Get.snackbar("Error", "User record not found in Firestore");
         return;
       }
 
-      final appUser = AppUser.fromMap(user.uid, doc.data()!);
+      final user = AppUser.fromMap(uid, doc.data()!);
 
-      // Save credentials if remember me
-      if (rememberMe.value) {
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setString('email', email);
-        prefs.setString('password', password); // ⚠️ Use securely in production
-      }
-
-      Get.back(); // remove loading
-
-      // Navigate based on role
-      switch (appUser.role) {
-        case 'admin':
-          Get.offAllNamed(AppRoutes.adminDashboard);
-          break;
-        case 'brand':
-          Get.offAllNamed(AppRoutes.brandDashboard);
-          break;
-        default:
-          Get.offAllNamed(AppRoutes.userDashboard);
-      }
+      await _saveUserData(uid, user.role, email, password);
+      _navigateByRole(user.role);
     } on FirebaseAuthException catch (e) {
-      Get.back();
-      Get.snackbar(
-        "Sign In Failed",
-        e.message ?? "An error occurred",
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.black,
-      );
-    } catch (e) {
-      Get.back();
-      Get.snackbar("Error", "Unexpected error occurred");
+      EasyLoading.dismiss();
+      Get.snackbar("Sign In Failed", e.message ?? "An error occurred");
+    } finally {
+      EasyLoading.dismiss();
     }
   }
 
-  Future<void> loadRememberedCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    emailController.text = prefs.getString('email') ?? '';
-    passwordController.text = prefs.getString('password') ?? '';
+  Future<void> signInWithGoogle() async {
+    try {
+      EasyLoading.show(status: "Signing in with Google...");
+      await _googleSignIn.signOut(); // force account picker
+      final googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        EasyLoading.dismiss();
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user!;
+      final uid = user.uid;
+
+      final userDoc = _firestore.collection('users').doc(uid);
+      final snapshot = await userDoc.get();
+
+      if (!snapshot.exists) {
+        await userDoc.set({
+          "email": user.email,
+          "name": user.displayName ?? "Unnamed",
+          "role": "user",
+          "createdAt": FieldValue.serverTimestamp(),
+        });
+      }
+
+      final methods = await _auth.fetchSignInMethodsForEmail(user.email!);
+      if (!methods.contains('password')) {
+        Get.offAllNamed(AppRoutes.passwordPrompt); // You define this
+      } else {
+        final userData = AppUser.fromMap(uid, (await userDoc.get()).data()!);
+        await _saveUserData(uid, userData.role, user.email!, null);
+        _navigateByRole(userData.role);
+      }
+    } catch (e) {
+      EasyLoading.dismiss();
+      Get.snackbar("Google Sign-In Failed", e.toString());
+    } finally {
+      EasyLoading.dismiss();
+    }
   }
 
-  @override
-  void onInit() {
-    super.onInit();
-    loadRememberedCredentials();
+  Future<void> _saveUserData(
+    String uid,
+    String role,
+    String email,
+    String? password,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("userId", uid);
+    await prefs.setString("userType", role);
+    await prefs.setString("email", email);
+    if (rememberMe.value && password != null) {
+      await prefs.setString("password", password);
+    }
+  }
+
+  // Navigate based on role
+  void _navigateByRole(String role) {
+    switch (role) {
+      case 'admin':
+        Get.offAllNamed(AppRoutes.adminDashboard);
+        break;
+      case 'brand':
+        Get.offAllNamed(AppRoutes.brandDashboard);
+        break;
+      default:
+        Get.offAllNamed(AppRoutes.userDashboard);
+    }
   }
 
   @override

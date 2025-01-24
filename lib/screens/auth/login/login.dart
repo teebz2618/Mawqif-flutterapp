@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/user_signIn_controller.dart';
+import 'package:mawqif/constants/app_colors.dart';
 
 class SignInScreen extends StatelessWidget {
   SignInScreen({super.key});
@@ -78,21 +79,21 @@ class SignInScreen extends StatelessWidget {
                   height: 45,
                   child: TextField(
                     controller: _controller.passwordController,
-                    obscureText: _controller.rememberMe.value,
+                    obscureText: _controller.obscurePassword.value,
                     decoration: InputDecoration(
                       hintText: '••••••••••',
                       hintStyle: TextStyle(color: Colors.grey.shade500),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _controller.rememberMe.value
+                          _controller.obscurePassword.value
                               ? Icons.visibility_off
                               : Icons.visibility,
                           color: Colors.grey,
                         ),
                         onPressed:
                             () =>
-                                _controller.rememberMe.value =
-                                    !_controller.rememberMe.value,
+                                _controller.obscurePassword.value =
+                                    !_controller.obscurePassword.value,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -201,7 +202,7 @@ class SignInScreen extends StatelessWidget {
               Center(
                 child: GestureDetector(
                   onTap: () {
-                    // TODO: Add Google Sign In
+                    _controller.signInWithGoogle();
                   },
                   child: Container(
                     padding: const EdgeInsets.all(8),
@@ -230,7 +231,7 @@ class SignInScreen extends StatelessWidget {
                   child: InkWell(
                     onTap: () => Get.toNamed(AppRoutes.userRegister),
                     borderRadius: BorderRadius.circular(4),
-                    splashColor: Colors.brown.withOpacity(0.2),
+                    splashColor: brown20,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 4,
@@ -267,7 +268,7 @@ class SignInScreen extends StatelessWidget {
                   child: InkWell(
                     onTap: () => Get.toNamed(AppRoutes.brandRegister),
                     borderRadius: BorderRadius.circular(4),
-                    splashColor: Color(0x33A1887F),
+                    splashColor: brown20,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 4,
