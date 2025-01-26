@@ -3,12 +3,14 @@ class AppUser {
   final String email;
   final String role;
   final String? name;
+  final String? password;
 
   AppUser({
     required this.uid,
     required this.email,
     required this.role,
     this.name,
+    this.password,
   });
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> data) {
@@ -17,10 +19,16 @@ class AppUser {
       email: data['email'] ?? '',
       role: data['role'] ?? 'user',
       name: data['name'],
+      password: data['passsword'],
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {'email': email, 'role': role, if (name != null) 'name': name};
+    return {
+      'email': email,
+      'role': role,
+      if (name != null) 'name': name,
+      if (password != null) 'password': password,
+    };
   }
 }

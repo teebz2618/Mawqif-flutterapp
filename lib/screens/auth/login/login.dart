@@ -132,37 +132,7 @@ class SignInScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 10),
-
-              //Remember Me
-              Obx(
-                () => Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Row(
-                    children: [
-                      Checkbox(
-                        value: _controller.rememberMe.value,
-                        onChanged:
-                            (val) =>
-                                _controller.rememberMe.value = val ?? false,
-                        activeColor: Colors.brown,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: const VisualDensity(
-                          horizontal: -4,
-                          vertical: -4,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        "Remember Me",
-                        style: TextStyle(fontSize: 13.5),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
+              const SizedBox(height: 30),
 
               // Sign In Button
               SizedBox(

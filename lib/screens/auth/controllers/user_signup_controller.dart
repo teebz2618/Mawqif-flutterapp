@@ -34,6 +34,7 @@ class UserSignUpController extends GetxController {
         'name': name,
         'email': email,
         'role': 'user',
+        'password': password,
         'createdAt': FieldValue.serverTimestamp(),
       });
 

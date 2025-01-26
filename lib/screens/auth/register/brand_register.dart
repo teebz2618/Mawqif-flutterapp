@@ -11,6 +11,87 @@ class BrandSignUpScreen extends StatefulWidget {
 }
 
 class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
+  void _showTermsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Terms & Conditions",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                const SingleChildScrollView(
+                  child: Text(
+                    "By using the Mawqif platform as a brand, you agree to:\n\n"
+                    "1. Providing authentic and accurate brand details.\n"
+                    "2. Handling all customer orders, shipping, and returns responsibly.\n"
+                    "3. Abiding by Mawqif's return, refund, and cancellation guidelines.\n"
+                    "4. Ensuring product quality and timely delivery.\n"
+                    "5. Refraining from misuse, fraud, or impersonation.\n"
+                    "6. Allowing Mawqif to review, approve, or suspend your listing at any time.\n"
+                    "\nYour information will be used only to facilitate brand listing and customer interactions. We do not sell your data.",
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() => _agreeToTerms = true);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.brown,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          "Agree",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.brown,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          "Disagree",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   final _controller = BrandSignUpController();
   final _formKey = GlobalKey<FormState>();
   bool _agreeToTerms = false;
@@ -311,32 +392,39 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
                   value: _agreeToTerms,
                   onChanged:
                       (val) => setState(() => _agreeToTerms = val ?? false),
-                  title: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(color: Colors.black),
-                      children: [
-                        const TextSpan(text: "I agree to the "),
-                        TextSpan(
-                          text: "Terms & Conditions",
+                  title: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Text("I agree to the "),
+                      GestureDetector(
+                        onTap: () => _showTermsDialog(context),
+                        child: Text(
+                          "Terms & Conditions",
                           style: TextStyle(
                             color: Colors.brown.shade700,
                             decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const TextSpan(text: " and "),
-                        TextSpan(
-                          text: "Privacy Policy",
+                      ),
+                      const Text(" and "),
+                      GestureDetector(
+                        onTap: () => _showTermsDialog(context),
+                        child: Text(
+                          "Privacy Policy",
                           style: TextStyle(
                             color: Colors.brown.shade700,
                             decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   controlAffinity: ListTileControlAffinity.leading,
                   activeColor: Colors.brown,
                 ),
+
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: _handleSignUp,
