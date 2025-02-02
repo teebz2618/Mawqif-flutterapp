@@ -27,7 +27,11 @@ class UserSignUpController extends GetxController {
         password: password,
       );
 
-      final uid = userCredential.user!.uid;
+      final user = userCredential.user!;
+      final uid = user.uid;
+
+      await user.updateDisplayName(name);
+      await user.reload();
 
       // Save user to Firestore with role 'user'
       await _firestore.collection('users').doc(uid).set({
