@@ -4,6 +4,7 @@ class AppUser {
   final String role;
   final String? name;
   final String? password;
+  final bool? approved;
 
   AppUser({
     required this.uid,
@@ -11,6 +12,7 @@ class AppUser {
     required this.role,
     this.name,
     this.password,
+    this.approved,
   });
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> data) {
@@ -19,7 +21,8 @@ class AppUser {
       email: data['email'] ?? '',
       role: data['role'] ?? 'user',
       name: data['name'],
-      password: data['passsword'],
+      password: data['password'],
+      approved: data['approved'] ?? false,
     );
   }
 
@@ -29,6 +32,7 @@ class AppUser {
       'role': role,
       if (name != null) 'name': name,
       if (password != null) 'password': password,
+      if (approved != null) 'approved': approved,
     };
   }
 }

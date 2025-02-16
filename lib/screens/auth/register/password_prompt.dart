@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import '../../../routes/app_routes.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PasswordPromptScreen extends StatefulWidget {
   const PasswordPromptScreen({super.key});
@@ -40,12 +41,30 @@ class _PasswordPromptScreenState extends State<PasswordPromptScreen> {
     try {
       EasyLoading.show(status: "Setting password...");
       final user = FirebaseAuth.instance.currentUser;
-      await user?.updatePassword(password);
-      await user?.reload();
-      EasyLoading.dismiss();
 
+      if (user == null) {
+        EasyLoading.dismiss();
+        Get.snackbar("Error", "No user is currently signed in");
+        return;
+      }
+
+      await user.updatePassword(password);
+      await user.reload();
+
+      final userDoc = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid);
+
+      await userDoc.set({
+        'name': user.displayName ?? '',
+        'email': user.email,
+        'role': 'user',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      EasyLoading.dismiss();
       Get.snackbar("Success", "Password set successfully");
-      Get.offAllNamed(AppRoutes.userDashboard); // or redirect based on role
+      Get.offAllNamed(AppRoutes.userDashboard);
     } on FirebaseAuthException catch (e) {
       EasyLoading.dismiss();
       Get.snackbar("Failed", e.message ?? "An error occurred");

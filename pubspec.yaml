@@ -57,6 +57,9 @@ dev_dependencies:
   encrypt: ^5.0.1
   font_awesome_flutter: ^10.5.0
   share_plus: ^7.2.1
+  country_picker: ^2.0.21
+  flutter_libphonenumber: ^2.5.1
+  firebase_app_check: ^0.3.2+9
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:country_picker/country_picker.dart';
 import '../controllers/brand_signup_controller.dart';
 
 class BrandSignUpScreen extends StatefulWidget {
@@ -11,6 +12,31 @@ class BrandSignUpScreen extends StatefulWidget {
 }
 
 class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
+  final BrandSignUpController _controller = Get.put(BrandSignUpController());
+  final _formKey = GlobalKey<FormState>();
+  bool _agreeToTerms = false;
+  AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
+  final RxBool _shippingErrorVisible = false.obs;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.descriptionController.addListener(() {
+      setState(() {}); // For live word count
+    });
+
+    ever(_controller.isWorldwide, (_) => _validateShippingInfo());
+    ever(_controller.selectedCountries, (_) => _validateShippingInfo());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _showTermsDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -54,9 +80,6 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.brown,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
                         ),
                         child: const Text(
                           "Agree",
@@ -67,14 +90,9 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                        onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.brown,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
                         ),
                         child: const Text(
                           "Disagree",
@@ -92,24 +110,12 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
     );
   }
 
-  final _controller = BrandSignUpController();
-  final _formKey = GlobalKey<FormState>();
-  bool _agreeToTerms = false;
-  XFile? _logo;
-  AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
-
-  Future<void> _pickLogo() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() => _logo = pickedFile);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  bool _validateShippingInfo() {
+    final isValid =
+        _controller.isWorldwide.value ||
+        _controller.selectedCountries.isNotEmpty;
+    _shippingErrorVisible.value = !isValid;
+    return isValid;
   }
 
   void _handleSignUp() {
@@ -117,7 +123,7 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
       _autoValidateMode = AutovalidateMode.onUserInteraction;
     });
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || !_validateShippingInfo()) return;
 
     if (!_agreeToTerms) {
       Get.snackbar(
@@ -127,43 +133,14 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
       );
       return;
     }
-
-    if (_logo == null) {
-      Get.snackbar(
-        "Logo Required",
-        "Please upload your brand logo.",
-        backgroundColor: Colors.orange.shade100,
-      );
-      return;
-    }
-
     _controller.signUpWithEmail(
-      onSuccess: () {
-        Get.dialog(
-          AlertDialog(
-            title: const Text("Application Submitted"),
-            content: const Text(
-              "Your application is under review. You’ll be notified upon approval.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Get.back();
-                  Get.offAllNamed('/login');
-                },
-                child: const Text("OK"),
-              ),
-            ],
+      onSuccess: () => Get.offAllNamed('/brandPending'),
+      onError:
+          (message) => Get.snackbar(
+            "Sign Up Failed",
+            message,
+            backgroundColor: Colors.red.shade100,
           ),
-        );
-      },
-      onError: (message) {
-        Get.snackbar(
-          "Sign Up Failed",
-          message,
-          backgroundColor: Colors.red.shade100,
-        );
-      },
     );
   }
 
@@ -175,95 +152,95 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
     int maxLines = 1,
     String? hint,
     int? maxWords,
+    bool obscureText = false,
+    VoidCallback? onToggleObscure,
     String? Function(String?)? validator,
+    String? prefixText,
+    AutovalidateMode? autovalidateMode,
   }) {
-    bool _obscure = true;
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: TextSpan(
-                text: label,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-                children:
-                    isRequired
-                        ? [
-                          const TextSpan(
-                            text: ' *',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ]
-                        : [],
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: controller,
-              obscureText: isPassword ? _obscure : false,
-              maxLines: maxLines,
-              autovalidateMode: _autoValidateMode,
-              decoration: InputDecoration(
-                hintText: hint ?? label,
-                hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 20,
-                ),
-                suffixIcon:
-                    isPassword
-                        ? IconButton(
-                          icon: Icon(
-                            _obscure ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.grey,
-                          ),
-                          onPressed:
-                              () => setState(() {
-                                _obscure = !_obscure;
-                              }),
-                        )
-                        : null,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: Colors.brown.shade600),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(color: Colors.red),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: Colors.red.shade700),
-                ),
-              ),
-              validator:
-                  validator ??
-                  (value) {
-                    if (isRequired && (value == null || value.trim().isEmpty)) {
-                      return 'This field is required';
-                    }
-                    if (maxWords != null && value != null) {
-                      final wordCount =
-                          value.trim().split(RegExp(r'\s+')).length;
-                      if (wordCount > maxWords)
-                        return 'Max $maxWords words allowed';
-                    }
-                    return null;
-                  },
+            children:
+                isRequired
+                    ? [
+                      const TextSpan(
+                        text: ' *',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ]
+                    : [
+                      const TextSpan(
+                        text: ' (optional)',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          obscureText: isPassword ? obscureText : false,
+          maxLines: isPassword ? 1 : maxLines,
+          autovalidateMode: autovalidateMode ?? _autoValidateMode,
+          decoration: InputDecoration(
+            hintText: hint ?? label,
+            prefixText: prefixText,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 10,
+              horizontal: 20,
             ),
-            const SizedBox(height: 14),
-          ],
-        );
-      },
+            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+            suffixIcon:
+                isPassword
+                    ? IconButton(
+                      icon: Icon(
+                        obscureText ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: onToggleObscure,
+                    )
+                    : null,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: BorderSide(color: Colors.brown.shade600),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: BorderSide(color: Colors.red.shade700),
+            ),
+          ),
+          validator:
+              validator ??
+              (value) {
+                if (isRequired && (value == null || value.trim().isEmpty))
+                  return 'This field is required';
+                if (maxWords != null && value != null) {
+                  final wordCount = value.trim().split(RegExp(r'\s+')).length;
+                  if (wordCount > maxWords)
+                    return 'Max $maxWords words allowed';
+                }
+                return null;
+              },
+        ),
+        const SizedBox(height: 14),
+      ],
     );
   }
 
@@ -282,7 +259,6 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
             key: _formKey,
             child: ListView(
               children: [
-                const SizedBox(height: 20),
                 const Center(
                   child: Text(
                     "Brand Sign-Up",
@@ -303,33 +279,53 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
                   label: "Brand Name",
                   controller: _controller.brandNameController,
                   isRequired: true,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty)
+                      return 'Brand name is required';
+                    if (!RegExp(r'[a-zA-Z]').hasMatch(value))
+                      return 'Brand name must contain at least one letter';
+                    return null;
+                  },
                 ),
+
                 _buildField(
                   label: "Email",
                   controller: _controller.emailController,
                   isRequired: true,
                 ),
+
                 _buildField(
                   label: "Password",
                   controller: _controller.passwordController,
                   isRequired: true,
                   isPassword: true,
+                  obscureText: _obscurePassword,
+                  onToggleObscure:
+                      () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                 ),
+
                 _buildField(
                   label: "Confirm Password",
                   controller: _controller.confirmPasswordController,
                   isRequired: true,
                   isPassword: true,
+                  obscureText: _obscureConfirmPassword,
+                  onToggleObscure:
+                      () => setState(
+                        () =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword,
+                      ),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null || value.trim().isEmpty)
                       return 'This field is required';
-                    }
-                    if (value != _controller.passwordController.text) {
+                    if (value != _controller.passwordController.text)
                       return 'Passwords do not match';
-                    }
                     return null;
                   },
                 ),
+
                 _buildField(
                   label: "Description",
                   controller: _controller.descriptionController,
@@ -337,6 +333,13 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
                   maxLines: 3,
                   maxWords: 30,
                   hint: "Tell us about your brand (max 30 words)",
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty)
+                      return 'Description is required';
+                    final words = value.trim().split(RegExp(r'\s+'));
+                    if (words.length > 30) return 'Maximum 30 words allowed';
+                    return null;
+                  },
                 ),
                 Text(
                   "$descWordCount / 30 words",
@@ -345,48 +348,169 @@ class _BrandSignUpScreenState extends State<BrandSignUpScreen> {
                     color: descWordCount > 30 ? Colors.red : Colors.grey,
                   ),
                 ),
+
+                const SizedBox(height: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: const TextSpan(
+                        text: "Country of Origin",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: ' *',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _controller.countryController,
+                      readOnly: true,
+                      onTap: () {
+                        showCountryPicker(
+                          context: context,
+                          showPhoneCode: false,
+                          onSelect: (country) {
+                            setState(() {
+                              _controller.countryController.text = country.name;
+                              _controller.selectedDialCode = country.phoneCode;
+                            });
+                          },
+                        );
+                      },
+                      autovalidateMode: _autoValidateMode,
+                      validator:
+                          (value) =>
+                              value == null || value.trim().isEmpty
+                                  ? 'Please select a country'
+                                  : null,
+                      decoration: InputDecoration(
+                        hintText: "Select your country",
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 14,
+                        ),
+                        suffixIcon: const Icon(Icons.arrow_drop_down),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
                 const SizedBox(height: 14),
 
                 _buildField(
                   label: "Contact Info",
                   controller: _controller.contactController,
-                ),
-                _buildField(
-                  label: "Shipping Info",
-                  controller: _controller.shippingInfoController,
-                  isRequired: true,
-                  hint: "e.g., Worldwide or Pakistan, UAE, UK",
-                ),
-                _buildField(
-                  label: "Country of Origin",
-                  controller: _controller.countryController,
+                  isRequired: false,
+                  hint: "Phone number",
+                  prefixText:
+                      _controller.selectedDialCode != null
+                          ? '+${_controller.selectedDialCode} '
+                          : null,
+                  validator: (value) {
+                    if (value != null && value.trim().isNotEmpty) {
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
+                        return 'Enter digits only';
+                      }
+                    }
+                    return null;
+                  },
                 ),
 
-                const SizedBox(height: 12),
                 const Text(
-                  "Upload Brand Logo",
+                  "Shipping Info",
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _pickLogo,
-                      icon: const Icon(Icons.upload),
-                      label: const Text("Choose File"),
-                    ),
-                    const SizedBox(width: 10),
-                    if (_logo != null)
-                      Expanded(
-                        child: Text(
-                          _logo!.name,
-                          style: const TextStyle(fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
+                const SizedBox(height: 10),
+
+                Obx(
+                  () => CheckboxListTile(
+                    title: const Text("Ship Worldwide"),
+                    value: _controller.isWorldwide.value,
+                    onChanged: (val) {
+                      _controller.isWorldwide.value = val ?? false;
+                      if (val == true) _controller.selectedCountries.clear();
+                    },
+                    activeColor: Colors.brown,
+                  ),
                 ),
-                const SizedBox(height: 20),
+
+                Obx(
+                  () => IgnorePointer(
+                    ignoring: _controller.isWorldwide.value,
+                    child: Opacity(
+                      opacity: _controller.isWorldwide.value ? 0.5 : 1.0,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showCountryPicker(
+                                context: context,
+                                showPhoneCode: false,
+                                onSelect: (country) {
+                                  if (!_controller.selectedCountries.contains(
+                                    country.name,
+                                  )) {
+                                    _controller.selectedCountries.add(
+                                      country.name,
+                                    );
+                                  }
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.add_location_alt),
+                            label: const Text("Select Countries"),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            children:
+                                _controller.selectedCountries.map((country) {
+                                  return Chip(
+                                    label: Text(country),
+                                    onDeleted:
+                                        () => _controller.selectedCountries
+                                            .remove(country),
+                                    deleteIconColor: Colors.red,
+                                  );
+                                }).toList(),
+                          ),
+                          const SizedBox(height: 14),
+
+                          Obx(() {
+                            return _shippingErrorVisible.value
+                                ? const Padding(
+                                  padding: EdgeInsets.only(top: 4, left: 4),
+                                  child: Text(
+                                    'Please select "Ship Worldwide" or add at least one country.',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                                : const SizedBox.shrink();
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
 
                 CheckboxListTile(
                   value: _agreeToTerms,

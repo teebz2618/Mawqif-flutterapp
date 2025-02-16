@@ -4,14 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class BrandSignUpController extends GetxController {
+  // Controllers for text fields
   final brandNameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
   final descriptionController = TextEditingController();
   final contactController = TextEditingController();
-  final shippingInfoController = TextEditingController();
   final countryController = TextEditingController();
+
+  // Shipping logic
+  RxBool isWorldwide = false.obs;
+  RxList<String> selectedCountries = <String>[].obs;
+
+  // Dial code
+  String? selectedDialCode;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -24,7 +31,6 @@ class BrandSignUpController extends GetxController {
     confirmPasswordController.dispose();
     descriptionController.dispose();
     contactController.dispose();
-    shippingInfoController.dispose();
     countryController.dispose();
     super.dispose();
   }
@@ -37,9 +43,21 @@ class BrandSignUpController extends GetxController {
     final password = passwordController.text.trim();
     final brandName = brandNameController.text.trim();
     final description = descriptionController.text.trim();
-    final contact = contactController.text.trim();
-    final shipping = shippingInfoController.text.trim();
     final country = countryController.text.trim();
+
+    String contact = contactController.text.trim();
+    if (selectedDialCode != null && contact.isNotEmpty) {
+      contact = '+$selectedDialCode$contact';
+    } else {
+      contact = '';
+    }
+
+    dynamic shippingInfo =
+        isWorldwide.value
+            ? 'Worldwide'
+            : selectedCountries.isNotEmpty
+            ? selectedCountries.toList()
+            : null;
 
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -49,14 +67,16 @@ class BrandSignUpController extends GetxController {
 
       final uid = userCredential.user!.uid;
 
-      await _firestore.collection('users').doc(uid).set({
+      await _firestore.collection('brands').doc(uid).set({
         'uid': uid,
+        'name': brandName,
         'email': email,
-        'brandName': brandName,
-        'description': description,
-        'contact': contact,
-        'shippingInfo': shipping,
-        'country': country,
+        'status': 'pending',
+        'password': password,
+        if (description.isNotEmpty) 'description': description,
+        if (shippingInfo != null) 'shippingInfo': shippingInfo,
+        if (contact.isNotEmpty) 'contact': contact,
+        if (country.isNotEmpty) 'country': country,
         'role': 'brand',
         'createdAt': FieldValue.serverTimestamp(),
       });
