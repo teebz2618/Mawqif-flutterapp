@@ -31,78 +31,85 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    final userDoc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-    if (!userDoc.exists) {
-      Get.offAllNamed(AppRoutes.login);
-      return;
-    }
-
-    final appUser = AppUser.fromMap(user.uid, userDoc.data()!);
-
-    if (appUser.role == 'admin') {
-      Get.offAllNamed(AppRoutes.adminDashboard);
-    } else if (appUser.role == 'user') {
-      Get.offAllNamed(AppRoutes.userDashboard);
-    } else if (appUser.role == 'brand') {
-      final brandDoc =
+    try {
+      final userDoc =
           await FirebaseFirestore.instance
-              .collection('brands')
+              .collection('users')
               .doc(user.uid)
               .get();
-      if (!brandDoc.exists) {
+
+      if (!userDoc.exists) {
         Get.offAllNamed(AppRoutes.login);
         return;
       }
 
-      final brandUser = BrandUser.fromMap(user.uid, brandDoc.data()!);
+      final appUser = AppUser.fromMap(user.uid, userDoc.data()!);
 
-      switch (brandUser.status) {
-        case 'pending':
-          await FirebaseAuth.instance.signOut();
-          Get.offAllNamed(AppRoutes.brandPending);
-          return;
-        case 'rejected':
-          await FirebaseAuth.instance.signOut();
-          Get.offAllNamed(
-            AppRoutes.brandReject,
-            arguments: brandUser.rejectionReason,
-          );
-          return;
-        case 'approved':
-          if (brandUser.logoUrl != null && brandUser.logoUrl!.isNotEmpty) {
-            Get.offAllNamed(AppRoutes.brandDashboard);
-          } else {
-            // Check Firebase Storage to confirm logo file exists
-            try {
-              final ref = FirebaseStorage.instance.ref().child(
-                'brandLogos/${user.uid}.jpg',
-              );
-              final url = await ref.getDownloadURL();
-              if (url.isNotEmpty) {
-                await FirebaseFirestore.instance
-                    .collection('brands')
-                    .doc(user.uid)
-                    .update({'logoUrl': url});
-                Get.offAllNamed(AppRoutes.brandDashboard);
-              } else {
-                Get.offAllNamed(AppRoutes.logoUpload);
-              }
-            } catch (e) {
-              Get.offAllNamed(AppRoutes.logoUpload);
-            }
-          }
-          return;
-        default:
-          await FirebaseAuth.instance.signOut();
+      if (appUser.role == 'admin') {
+        Get.offAllNamed(AppRoutes.adminDashboard);
+      } else if (appUser.role == 'user') {
+        Get.offAllNamed(AppRoutes.userDashboard);
+      } else if (appUser.role == 'brand') {
+        final brandDoc =
+            await FirebaseFirestore.instance
+                .collection('brands')
+                .doc(user.uid)
+                .get();
+
+        if (!brandDoc.exists) {
           Get.offAllNamed(AppRoutes.login);
           return;
+        }
+
+        final brandUser = BrandUser.fromMap(user.uid, brandDoc.data()!);
+
+        switch (brandUser.status) {
+          case 'pending':
+            await FirebaseAuth.instance.signOut();
+            Get.offAllNamed(AppRoutes.brandPending);
+            return;
+          case 'rejected':
+            await FirebaseAuth.instance.signOut();
+            Get.offAllNamed(
+              AppRoutes.brandReject,
+              arguments: brandUser.rejectionReason,
+            );
+            return;
+          case 'approved':
+            if (brandUser.logoUrl != null && brandUser.logoUrl!.isNotEmpty) {
+              Get.offAllNamed(AppRoutes.brandDashboard);
+            } else {
+              // Checking Firebase Storage for logo
+              try {
+                final ref = FirebaseStorage.instance.ref().child(
+                  'brandLogos/${user.uid}.jpg',
+                );
+                final url = await ref.getDownloadURL();
+                if (url.isNotEmpty) {
+                  await FirebaseFirestore.instance
+                      .collection('brands')
+                      .doc(user.uid)
+                      .update({'logoUrl': url});
+                  Get.offAllNamed(AppRoutes.brandDashboard);
+                } else {
+                  Get.offAllNamed(AppRoutes.logoUpload);
+                }
+              } catch (e) {
+                // If logo not found in storage
+                Get.offAllNamed(AppRoutes.logoUpload);
+              }
+            }
+            return;
+          default:
+            await FirebaseAuth.instance.signOut();
+            Get.offAllNamed(AppRoutes.login);
+            return;
+        }
+      } else {
+        Get.offAllNamed(AppRoutes.login);
       }
-    } else {
+    } catch (e) {
+      await FirebaseAuth.instance.signOut();
       Get.offAllNamed(AppRoutes.login);
     }
   }
