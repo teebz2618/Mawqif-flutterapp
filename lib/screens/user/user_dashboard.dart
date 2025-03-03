@@ -11,10 +11,10 @@ class UserDashboard extends StatefulWidget {
 class _UserDashboardState extends State<UserDashboard> {
   int _currentIndex = 0;
   final List<Widget> _screens = const [
-    Center(child: Text('Home')), // Temporary placeholder
-    Center(child: Text('Notifications')), // Temporary placeholder
-    Center(child: Text('Cart')), // Temporary placeholder
-    ProfileScreen(), // Actual Profile screen
+    Center(child: Text('Home')),
+    Center(child: Text('Notifications')),
+    Center(child: Text('Cart')),
+    ProfileScreen(),
   ];
   @override
   Widget build(BuildContext context) {

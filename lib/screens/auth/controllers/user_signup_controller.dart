@@ -37,6 +37,7 @@ class UserSignUpController extends GetxController {
       await _firestore.collection('users').doc(uid).set({
         'name': name,
         'email': email,
+        'uid': uid,
         'role': 'user',
         'password': password,
         'createdAt': FieldValue.serverTimestamp(),
@@ -47,6 +48,13 @@ class UserSignUpController extends GetxController {
       Get.snackbar(
         "Sign Up Failed",
         e.message ?? "An error occurred",
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.black,
+      );
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        e.toString(),
         backgroundColor: Colors.red.shade100,
         colorText: Colors.black,
       );

@@ -34,7 +34,16 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
 
     _controller.signUp(
       onSuccess: () {
-        Get.toNamed(AppRoutes.login);
+        Get.snackbar(
+          "Success",
+          "Account created successfully!",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.brown.shade200,
+          colorText: Colors.black,
+        );
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          Get.toNamed(AppRoutes.userDashboard);
+        });
       },
     );
   }
@@ -179,6 +188,9 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                                                 ),
                                               ),
                                               onPressed: () {
+                                                setState(() {
+                                                  _agreeToTerms = false;
+                                                });
                                                 Navigator.pop(context);
                                               },
                                               child: const Text(

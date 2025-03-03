@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../routes/app_routes.dart'; // Make sure this import points to your AppRoutes
+import '../../../routes/app_routes.dart';
 
 class BrandPendingScreen extends StatelessWidget {
   const BrandPendingScreen({super.key});

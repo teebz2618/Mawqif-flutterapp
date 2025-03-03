@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mawqif/routes/app_routes.dart';
+import 'package:mawqif/viewmodels/auth_viewmodel.dart';
 import 'constants/app_colors.dart';
 import 'firebase_options.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +17,12 @@ void main() async {
     appleProvider: AppleProvider.debug,
   );
   configLoading();
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => AuthViewModel())],
+      child: MyApp(),
+    ),
+  );
 }
 
 void configLoading() {

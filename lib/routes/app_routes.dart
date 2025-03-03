@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:mawqif/screens/brand/brand_dashboard.dart';
+import 'package:mawqif/screens/brand/brand_homeScreen/home.dart';
 import 'package:mawqif/screens/brand/brand_pending_screen.dart';
 import 'package:mawqif/screens/brand/brand_rejected.dart';
 import '../screens/admin/views/admin_dashboard.dart';
