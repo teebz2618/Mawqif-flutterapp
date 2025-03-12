@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:mawqif/screens/brand/brand_dashboard.dart';
-import 'package:mawqif/screens/brand/brand_homeScreen/home.dart';
+import 'package:mawqif/screens/brand/brand_home/add_products.dart';
 import 'package:mawqif/screens/brand/brand_pending_screen.dart';
 import 'package:mawqif/screens/brand/brand_rejected.dart';
 import '../screens/admin/views/admin_dashboard.dart';
@@ -10,6 +10,8 @@ import '../screens/auth/register/brand_logo.dart';
 import '../screens/auth/register/brand_register.dart';
 import '../screens/auth/register/user_register.dart';
 import '../screens/auth/forgot/forgot_password_screen.dart';
+import '../screens/brand/brand_home/edit_product_screen.dart';
+import '../screens/brand/brand_home/product_detail_screen.dart';
 import '../screens/splash/pre_splash_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import 'package:mawqif/screens/user/user_dashboard.dart';
@@ -27,11 +29,14 @@ class AppRoutes {
   static const brandRegister = '/brandRegister';
   static const userDashboard = '/userDashboard';
   static const adminDashboard = '/adminDashboard';
+  static const brandDetail = '/brandDetail';
   static const brandDashboard = '/brandDashboard';
   static const brandPending = '/brandPending';
-  static const brandDetail = '/brandDetail';
-  static const logoUpload = '/logoUpload';
   static const brandReject = '/brandRejected';
+  static const logoUpload = '/logoUpload';
+  static const productDetail = '/productDetail';
+  static const addProducts = '/addProducts';
+  static const editProducts = '/editProducts';
 
   static final routes = [
     GetPage(name: preSplash, page: () => const PreSplashScreen()),
@@ -42,12 +47,15 @@ class AppRoutes {
     GetPage(name: userRegister, page: () => UserSignUpScreen()),
     GetPage(name: passwordPrompt, page: () => PasswordPromptScreen()),
     GetPage(name: brandRegister, page: () => BrandSignUpScreen()),
-    GetPage(name: logoUpload, page: () => UploadLogoScreen()),
     GetPage(name: userDashboard, page: () => UserDashboard()),
     GetPage(name: adminDashboard, page: () => AdminDashboard()),
     GetPage(name: brandDetail, page: () => BrandDetailScreen()),
     GetPage(name: brandDashboard, page: () => BrandDashboard()),
     GetPage(name: brandPending, page: () => BrandPendingScreen()),
     GetPage(name: brandReject, page: () => BrandRejectionReasonScreen()),
+    GetPage(name: logoUpload, page: () => UploadLogoScreen()),
+    GetPage(name: productDetail, page: () => ProductDetailScreen()),
+    GetPage(name: addProducts, page: () => AddProductScreen()),
+    GetPage(name: editProducts, page: () => EditProductScreen()),
   ];
 }

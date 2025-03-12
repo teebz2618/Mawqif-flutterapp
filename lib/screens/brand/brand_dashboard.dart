@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:mawqif/constants/app_colors.dart';
-import 'package:mawqif/screens/brand/brand_homeScreen/home.dart';
+import 'package:mawqif/screens/brand/brand_home/brand_home.dart';
 import 'brand_profile/profile.dart';
 
 class BrandDashboard extends StatefulWidget {
@@ -55,12 +54,6 @@ class _BrandDashboardState extends State<BrandDashboard> {
     }
   }
 
-  final List<Widget> _screens = [
-    BrandHomeScreen(),
-    const Center(child: Text('Orders Screen Placeholder')),
-    BrandProfileScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -73,41 +66,34 @@ class _BrandDashboardState extends State<BrandDashboard> {
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
+            children: const [
+              Text(
                 'Your account is not approved yet.\nPlease wait for admin approval.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 18),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
             ],
           ),
         ),
       );
     }
 
+    final List<Widget> _screens = [
+      BrandHomeScreen(brandName: _brandName),
+      const Center(child: Text('Orders Screen Placeholder')),
+      const Center(
+        child: Text('Notifications Screen Placeholder'),
+      ), // New notifications screen placeholder
+      BrandProfileScreen(),
+    ];
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: primaryBrown,
-        title: Center(
-          child: Text(
-            _currentIndex == 0
-                ? _brandName
-                : _currentIndex == 1
-                ? 'Orders'
-                : 'Profile',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        centerTitle: true,
-      ),
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.brown.shade600,
         currentIndex: _currentIndex,
-        selectedItemColor: Colors.brown.shade200,
-        unselectedItemColor: Colors.brown.shade300,
         onTap: (index) => setState(() => _currentIndex = index),
+        type: BottomNavigationBarType.fixed, // For more than 3 items
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -116,6 +102,10 @@ class _BrandDashboardState extends State<BrandDashboard> {
           BottomNavigationBarItem(
             icon: Icon(Icons.list_alt_outlined),
             label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_outlined),
+            label: 'Notifications',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
