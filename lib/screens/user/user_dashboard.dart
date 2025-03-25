@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mawqif/screens/user/user_home/user_home.dart';
+import 'notifications/user_notification.dart';
 import 'profile/user_profile.dart';
 
 class UserDashboard extends StatefulWidget {
@@ -13,10 +14,11 @@ class _UserDashboardState extends State<UserDashboard> {
   int _currentIndex = 0;
   final List<Widget> _screens = const [
     UserHome(),
-    Center(child: Text('Notifications')),
+    NotificationsScreen(),
     Center(child: Text('Cart')),
     ProfileScreen(),
   ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -7,4 +7,5 @@ const Color brown20 = Color(0x33A1887F);
 const Color primaryBrown = Color(0xFF8B5E3C);
 const Color darkBrown = Color(0xFF5D4037);
 const Color lightBrown = Color(0xFFD7CCC8);
-final themeColor = const Color(0xFF8B5E3C);
+const themeColor = Color(0xFF8B5E3C);
+const white = Color(0xFFFFFFFF);

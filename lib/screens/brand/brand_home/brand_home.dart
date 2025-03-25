@@ -27,43 +27,6 @@ class BrandHomeScreen extends StatelessWidget {
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.brown),
-            tooltip: 'Logout',
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder:
-                    (_) => AlertDialog(
-                      title: const Text("Confirm Logout"),
-                      content: const Text("Are you sure you want to logout?"),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text("Cancel"),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.brown,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text("Logout"),
-                        ),
-                      ],
-                    ),
-              );
-
-              if (confirmed == true) {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
-                await FirebaseAuth.instance.signOut();
-                Get.offAllNamed(AppRoutes.login);
-              }
-            },
-          ),
-        ],
       ),
 
       floatingActionButton: FloatingActionButton.extended(

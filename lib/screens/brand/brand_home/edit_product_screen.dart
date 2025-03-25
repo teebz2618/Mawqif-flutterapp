@@ -18,6 +18,15 @@ class EditProductScreen extends StatefulWidget {
 }
 
 class _EditProductScreenState extends State<EditProductScreen> {
+  bool isLoading = false;
+  late String originalName;
+  late String originalDescription;
+  late double originalPrice;
+  late double originalOriginalPrice;
+  late int originalDiscount;
+  late bool originalFlashSale;
+  late bool originalNewCollection;
+  late bool originalBestSeller;
   late String productId;
   late Map<String, dynamic> productData;
 
@@ -116,6 +125,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   @override
   void initState() {
+    _loadProductData();
     super.initState();
 
     // Prefer constructor; fallback to Get.arguments to avoid route breakage
@@ -132,7 +142,29 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _loadProductData();
   }
 
-  void _loadProductData() {
+  Future<void> _loadProductData() async {
+    setState(() => isLoading = true);
+
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('products')
+            .doc(widget.productId)
+            .get();
+
+    if (!doc.exists) {
+      // Handle product not found
+      return;
+    }
+
+    final data = doc.data()!;
+    originalName = data['name'];
+    originalDescription = data['description'];
+    originalPrice = (data['price'] as num).toDouble();
+    originalOriginalPrice = (data['originalPrice'] as num).toDouble();
+    originalDiscount = data['discount'] ?? 0;
+    originalFlashSale = data['isFlashSale'] ?? false;
+    originalNewCollection = data['isNewCollection'] ?? false;
+    originalBestSeller = data['isBestSeller'] ?? false;
     titleController.text = productData['title']?.toString() ?? '';
     descriptionController.text = productData['description']?.toString() ?? '';
     priceController.text = productData['price']?.toString() ?? '';
@@ -300,7 +332,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         'category': selectedCategory,
         'gender': selectedCategory == 'Thobes' ? selectedGender : null,
         'images': imageUrls,
-        'colors': selectedColors.map((c) => c.value).toList(),
+        'colors': selectedColors.map((c) => c).toList(),
         'sizes': selectedSizes,
         'accessories': selectedAccessories,
         'isFlashSale': isFlashSale,

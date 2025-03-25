@@ -633,8 +633,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       await FirebaseFirestore.instance
                           .collection('products')
                           .add(productData);
-
                       Navigator.of(context).pop();
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        AppRoutes.brandDashboard,
+                        (route) => false,
+                      );
                       Navigator.pushNamed(context, AppRoutes.brandDashboard);
                     } catch (e) {
                       Navigator.of(context).pop();

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:mawqif/screens/brand/brand_home/brand_home.dart';
+import 'package:mawqif/screens/brand/notification/brand_notification.dart';
 import 'brand_profile/profile.dart';
 
 class BrandDashboard extends StatefulWidget {
@@ -13,6 +14,7 @@ class BrandDashboard extends StatefulWidget {
 }
 
 class _BrandDashboardState extends State<BrandDashboard> {
+  String brandId = '';
   bool _isApproved = false;
   bool _isLoading = true;
   String _brandName = '';
@@ -23,6 +25,7 @@ class _BrandDashboardState extends State<BrandDashboard> {
   void initState() {
     super.initState();
     checkApprovalStatus();
+    _loadBrandInfo();
   }
 
   Future<void> checkApprovalStatus() async {
@@ -50,6 +53,25 @@ class _BrandDashboardState extends State<BrandDashboard> {
         _isApproved = true;
         _brandName = data?['name'] ?? 'Brand';
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadBrandInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('brands')
+            .doc(user.uid)
+            .get();
+
+    if (doc.exists) {
+      final data = doc.data()!;
+      setState(() {
+        _brandName = data['name'] ?? 'Brand';
+        brandId = user.uid;
       });
     }
   }
@@ -82,9 +104,7 @@ class _BrandDashboardState extends State<BrandDashboard> {
     final List<Widget> _screens = [
       BrandHomeScreen(brandName: _brandName),
       const Center(child: Text('Orders Screen Placeholder')),
-      const Center(
-        child: Text('Notifications Screen Placeholder'),
-      ), // New notifications screen placeholder
+      BrandNotificationScreen(brandId: brandId),
       BrandProfileScreen(),
     ];
 
