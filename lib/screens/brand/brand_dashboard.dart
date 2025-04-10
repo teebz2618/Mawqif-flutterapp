@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:mawqif/screens/brand/brand_home/brand_home.dart';
 import 'package:mawqif/screens/brand/notification/brand_notification.dart';
-import 'brand_profile/profile.dart';
+import 'brand_profile/brand_profile.dart';
 
 class BrandDashboard extends StatefulWidget {
   const BrandDashboard({super.key});

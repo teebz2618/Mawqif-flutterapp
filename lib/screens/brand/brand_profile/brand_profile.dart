@@ -41,6 +41,19 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
     super.initState();
     _initBrandListener();
     _attachTextListeners();
+    // Attach listener for shipping updates
+    _shippingController.addListener(() {
+      _shipDebounce?.cancel();
+      _shipDebounce = Timer(const Duration(seconds: 1), () {
+        final ships =
+            _shippingController.text
+                .split(",")
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList();
+        _updateField('shippingInfo', ships);
+      });
+    });
   }
 
   void _initBrandListener() {
@@ -73,9 +86,23 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
           }
         }
         if (!_shipFocus.hasFocus) {
-          final remoteShip = (data['shippingInfo'] ?? '') as String;
-          if (_shippingController.text != remoteShip) {
-            _shippingController.text = remoteShip;
+          final remoteShipRaw = data['shippingInfo'];
+          List<String> remoteShip = [];
+
+          if (remoteShipRaw is String) {
+            remoteShip =
+                remoteShipRaw
+                    .split(",")
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
+          } else if (remoteShipRaw is List) {
+            remoteShip = remoteShipRaw.map((e) => e.toString()).toList();
+          }
+
+          final remoteShipStr = remoteShip.join(", ");
+          if (_shippingController.text != remoteShipStr) {
+            _shippingController.text = remoteShipStr;
           }
         }
 
@@ -312,7 +339,7 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
               decoration: InputDecoration(
                 hintText: 'Brand Name',
                 filled: true,
-                fillColor: lightBrown,
+                fillColor: brown20,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -333,7 +360,7 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
               decoration: InputDecoration(
                 hintText: 'Short description about brand',
                 filled: true,
-                fillColor: lightBrown,
+                fillColor: brown20,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -353,7 +380,7 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
               decoration: InputDecoration(
                 hintText: 'Shipping details (e.g. Worldwide)',
                 filled: true,
-                fillColor: lightBrown,
+                fillColor: brown20,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -430,7 +457,7 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
                                   },
                                   child: const Text(
                                     "Logout",
-                                    style: TextStyle(color: Colors.black),
+                                    style: TextStyle(color: Colors.white),
                                   ),
                                 ),
                                 TextButton(
