@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mawqif/screens/user/user_home/accessories.dart';
+import 'package:mawqif/screens/user/user_home/product_categories.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,23 +15,32 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _country = "Detecting...";
-  int _selectedTab = 0; // 0 = Newest, 1 = Sale, 2 = Best Sellers
+  int _selectedTab = -1; // 0 = Newest, 1 = Sale, 2 = Best Sellers
 
-  // Example product data
-  final Map<String, List<Map<String, String>>> productData = {
-    "Newest": [
-      {"title": "Premium Cotton Thobe", "price": "\$89"},
-      {"title": "Elegant Black Abaya", "price": "\$129"},
-    ],
-    "Sale": [
-      {"title": "Silk Hijab Collection", "price": "\$25"},
-      {"title": "Traditional Keffiyeh", "price": "\$30"},
-    ],
-    "Best Sellers": [
-      {"title": "Classic White Thobe", "price": "\$99"},
-      {"title": "Luxury Designer Abaya", "price": "\$149"},
-    ],
-  };
+  Stream<QuerySnapshot> getProductsStream() {
+    // Start with the products collection
+    Query query = FirebaseFirestore.instance.collection('products');
+
+    // Filter by selected tab
+    if (_selectedTab == 0) {
+      query = query.where('isNewCollection', isEqualTo: true);
+    } else if (_selectedTab == 1) {
+      query = query.where('isFlashSale', isEqualTo: true);
+    } else if (_selectedTab == 2) {
+      query = query.where('isBestSeller', isEqualTo: true);
+    }
+
+    // Order by createdAt descending
+    return query.orderBy('createdAt', descending: true).snapshots();
+  }
+
+  Stream<QuerySnapshot> getAccessoriesStream() {
+    return FirebaseFirestore.instance
+        .collection('products')
+        .where('category', isEqualTo: 'Accessories')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
 
   @override
   void initState() {
@@ -67,15 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get selected tab products
-    List<Map<String, String>> products;
-    if (_selectedTab == 0) {
-      products = productData["Newest"]!;
-    } else if (_selectedTab == 1) {
-      products = productData["Sale"]!;
-    } else {
-      products = productData["Best Sellers"]!;
-    }
+    String category =
+        _selectedTab == 0
+            ? "Newest"
+            : _selectedTab == 1
+            ? "Sale"
+            : "Best Sellers";
 
     return Scaffold(
       body: SafeArea(
@@ -160,9 +169,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 Row(
                   children: [
-                    _buildCategoryCard("Thobes", Icons.male),
+                    _buildCategoryCard(context, "Thobes", Icons.male),
                     const SizedBox(width: 12),
-                    _buildCategoryCard("Abayas", Icons.female),
+                    _buildCategoryCard(context, "Abayas", Icons.female),
                   ],
                 ),
 
@@ -206,25 +215,49 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 const SizedBox(height: 15),
+                _selectedTab == -1
+                    ? const SizedBox.shrink()
+                    : StreamBuilder<QuerySnapshot>(
+                      stream: getProductsStream(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                /// --- Product Grid (changes by tab) ---
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: products.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.65,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                  ),
-                  itemBuilder: (context, index) {
-                    return _buildProductCard(
-                      products[index]["title"]!,
-                      products[index]["price"]!,
-                    );
-                  },
-                ),
+                        final products = snapshot.data!;
+                        if (products.docs.isEmpty) {
+                          return const Center(child: Text("No products found"));
+                        }
+
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: products.docs.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.65,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                              ),
+                          itemBuilder: (context, index) {
+                            final product =
+                                products.docs[index].data()
+                                    as Map<String, dynamic>;
+                            return _buildProductCard(
+                              product["title"],
+                              "\$${product["price"]}",
+                              product["images"] != null &&
+                                      product["images"].isNotEmpty
+                                  ? product["images"][0]
+                                  : null,
+                            );
+                          },
+                        );
+                      },
+                    ),
 
                 const SizedBox(height: 20),
               ],
@@ -235,45 +268,67 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategoryCard(String title, IconData icon) {
+  Widget _buildCategoryCard(BuildContext context, String title, IconData icon) {
     return Expanded(
-      child: Container(
-        height: 100,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 30, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CategoryProductsScreen(category: title),
             ),
-          ],
+          );
+        },
+        child: Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 30, color: Theme.of(context).primaryColor),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildAccessoryCard(String title, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 22, color: Theme.of(context).primaryColor),
-          const SizedBox(width: 6),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          ),
-        ],
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => Accessories(accessory: title)),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -309,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProductCard(String title, String price) {
+  Widget _buildProductCard(String title, String price, String? imageUrl) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -319,7 +374,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// Product Image Placeholder
           Expanded(
             flex: 4,
             child: Container(
@@ -330,11 +384,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: Colors.grey.shade300, width: 0.5),
               ),
-              child: const Icon(
-                Icons.image_outlined,
-                size: 35,
-                color: Colors.grey,
-              ),
+              child:
+                  imageUrl != null
+                      ? ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => const Icon(
+                                Icons.broken_image,
+                                size: 35,
+                                color: Colors.grey,
+                              ),
+                        ),
+                      )
+                      : const Icon(
+                        Icons.image_outlined,
+                        size: 35,
+                        color: Colors.grey,
+                      ),
             ),
           ),
 

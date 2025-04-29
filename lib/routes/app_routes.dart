@@ -15,6 +15,7 @@ import '../screens/brand/brand_home/product_detail_screen.dart';
 import '../screens/splash/pre_splash_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import 'package:mawqif/screens/user/user_dashboard.dart';
+import '../screens/user/user_home/product_detail.dart';
 import '../screens/welcome/welcome_screen.dart';
 import '../screens/auth/register/password_prompt.dart';
 
@@ -35,6 +36,7 @@ class AppRoutes {
   static const brandReject = '/brandRejected';
   static const logoUpload = '/logoUpload';
   static const productDetail = '/productDetail';
+  static const userProductDetail = '/userProductDetail';
   static const addProducts = '/addProducts';
   static const editProducts = '/editProducts';
 
@@ -54,7 +56,8 @@ class AppRoutes {
     GetPage(name: brandPending, page: () => BrandPendingScreen()),
     GetPage(name: brandReject, page: () => BrandRejectionReasonScreen()),
     GetPage(name: logoUpload, page: () => UploadLogoScreen()),
-    GetPage(name: productDetail, page: () => ProductDetailScreen()),
+    GetPage(name: productDetail, page: () => ProductDetailScreen(product: {})),
+    GetPage(name: userProductDetail, page: () => UserProductDetail()),
     GetPage(name: addProducts, page: () => AddProductScreen()),
     GetPage(name: editProducts, page: () => EditProductScreen()),
   ];

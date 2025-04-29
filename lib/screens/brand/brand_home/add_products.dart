@@ -31,7 +31,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     'Thobes',
     'Abayas',
     'Shemagh/Keffiyeh',
-    'Kaftan',
     'Scarfs',
     'Niqab',
     'ScarfPins',
@@ -99,9 +98,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (selectedCategory == 'Thobes' && selectedGender == 'Male') {
       return ['Keffiyeh/Shemagh'];
     } else if (selectedCategory == 'Thobes' && selectedGender == 'Female') {
-      return ['Keffiyeh/Shemagh', 'Scarfs', 'Scarf Pins', 'Niqab', 'Kaftan'];
+      return ['Keffiyeh/Shemagh', 'Scarfs', 'Scarf Pins', 'Niqab'];
     } else if (selectedCategory == 'Abayas') {
-      return ['Keffiyeh/Shemagh', 'Scarfs', 'Scarf Pins', 'Niqab', 'Kaftan'];
+      return ['Keffiyeh/Shemagh', 'Scarfs', 'Scarf Pins', 'Niqab'];
     }
     return [];
   }

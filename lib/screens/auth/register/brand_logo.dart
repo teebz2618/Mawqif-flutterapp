@@ -5,8 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mawqif/constants/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../routes/app_routes.dart';
 
 class UploadLogoScreen extends StatefulWidget {
@@ -32,7 +32,11 @@ class _UploadLogoScreenState extends State<UploadLogoScreen> {
 
   Future<void> uploadLogo() async {
     if (_image == null) {
-      Get.snackbar("Error", "Please select an image first.");
+      Get.snackbar(
+        "Error",
+        "Please select an image first.",
+        colorText: Colors.red,
+      );
       return;
     }
 
@@ -77,49 +81,99 @@ class _UploadLogoScreenState extends State<UploadLogoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Upload Your Brand Logo"),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          "Brand Logo",
+          style: TextStyle(fontWeight: FontWeight.bold, color: themeColor),
+        ),
+        centerTitle: true,
         actions: [
           IconButton(
             onPressed: _logout,
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: themeColor),
             tooltip: "Logout",
           ),
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _image != null
-                ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(_image!, height: 150),
-                )
-                : const Text(
-                  "No image selected",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: pickImage,
-              icon: const Icon(Icons.image),
-              label: const Text("Pick Logo"),
+            const SizedBox(height: 40),
+            Text(
+              "Upload Your Brand Logo",
+              style: theme.textTheme.headlineSmall?.copyWith(color: themeColor),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: isUploading ? null : uploadLogo,
-              icon:
-                  isUploading
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : const Icon(Icons.cloud_upload),
-              label: Text(isUploading ? "Uploading..." : "Upload Logo"),
+
+            const SizedBox(height: 10),
+
+            Text(
+              "A professional logo helps customers recognize your brand.",
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+
+            GestureDetector(
+              onTap: pickImage,
+              child: CircleAvatar(
+                radius: 70,
+                backgroundColor: Colors.grey[200],
+                backgroundImage: _image != null ? FileImage(_image!) : null,
+                child:
+                    _image == null
+                        ? Icon(
+                          Icons.add_a_photo,
+                          size: 40,
+                          color: Colors.grey[600],
+                        )
+                        : null,
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                onPressed: isUploading ? null : uploadLogo,
+                child:
+                    isUploading
+                        ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                        : const Text(
+                          "Upload Logo",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+              ),
             ),
           ],
         ),

@@ -1,13 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mawqif/screens/user/profile/privacy_policy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
-
 import '../../../routes/app_routes.dart';
 import 'edit_profile.dart';
 import 'help_center.dart';
@@ -22,79 +17,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  File? _imageFile;
-
-  Future<void> _pickImage(BuildContext context) async {
-    final source = await showDialog<ImageSource>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Select Image Source"),
-            content: const Text(
-              "Choose an option to upload your profile picture.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, ImageSource.camera),
-                child: const Text("Camera"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, ImageSource.gallery),
-                child: const Text("Gallery"),
-              ),
-            ],
-          ),
-    );
-
-    if (source == null) return;
-
-    final picked = await ImagePicker().pickImage(source: source);
-    if (picked != null) {
-      setState(() {
-        _imageFile = File(picked.path);
-      });
-      await uploadToFirebase(_imageFile!);
-    }
-  }
-
-  Future<void> uploadToFirebase(File file) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'profile_images/${user.uid}.jpg',
-      );
-      await storageRef.putFile(file);
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      await user.updatePhotoURL(downloadUrl);
-      await user.reload();
-
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid);
-      final docSnap = await docRef.get();
-
-      if (docSnap.exists) {
-        await docRef.update({'photoUrl': downloadUrl});
-      } else {
-        await docRef.set({
-          'email': user.email,
-          'name': user.displayName ?? 'User',
-          'photoUrl': downloadUrl,
-          'role': 'user',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      setState(() {});
-      Get.snackbar("Success", "Profile picture updated");
-    } catch (e) {
-      Get.snackbar("Upload Failed", e.toString());
-    }
-  }
-
   void logout(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -175,40 +97,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: Column(
               children: [
-                GestureDetector(
-                  onTap: () => _pickImage(context),
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundImage:
-                            _imageFile != null
-                                ? FileImage(_imageFile!)
-                                : photoUrl != null
-                                ? NetworkImage(photoUrl)
-                                : const AssetImage(
-                                      "assets/images/default_user.png",
-                                    )
-                                    as ImageProvider,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.brown.shade400,
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            size: 18,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                CircleAvatar(
+                  radius: 50,
+                  backgroundImage:
+                      photoUrl != null
+                          ? NetworkImage(photoUrl)
+                          : const AssetImage("assets/images/default_user.png")
+                              as ImageProvider,
                 ),
                 const SizedBox(height: 8),
                 Text(

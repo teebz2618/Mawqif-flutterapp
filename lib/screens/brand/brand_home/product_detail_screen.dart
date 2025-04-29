@@ -4,7 +4,7 @@ import '../../../constants/app_colors.dart';
 import 'edit_product_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  const ProductDetailScreen({super.key});
+  const ProductDetailScreen({super.key, required Map<String, dynamic> product});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
