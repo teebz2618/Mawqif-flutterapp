@@ -4,7 +4,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../constants/app_colors.dart';
 import '../../../models/brand_model.dart';
+import '../../../services/brand_service.dart';
 
 class BrandDetailScreen extends StatelessWidget {
   const BrandDetailScreen({super.key});
@@ -13,6 +15,7 @@ class BrandDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = Get.arguments;
     final BrandUser brand = BrandUser.fromMap(data['docId'], data['brand']);
+    final BrandService brandService = BrandService();
     final docId = brand.uid;
 
     return Scaffold(
@@ -68,15 +71,17 @@ class BrandDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // Upload Logo (Only if approved & logo is not uploaded yet)
             if (brand.status == 'approved' &&
                 (brand.logoUrl == null || brand.logoUrl!.isEmpty))
               ElevatedButton.icon(
                 onPressed: () => uploadBrandLogo(brand),
-                icon: const Icon(Icons.upload),
-                label: const Text("Upload Logo"),
+                icon: const Icon(Icons.upload, color: Colors.white),
+                label: const Text(
+                  "Upload Logo",
+                  style: TextStyle(color: white),
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.brown,
+                  backgroundColor: themeColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -107,7 +112,7 @@ class BrandDetailScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _updateStatus("approved", docId),
+                    onPressed: () => brandService.approveBrand(brand),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.brown,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -124,7 +129,55 @@ class BrandDetailScreen extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => rejectBrand(docId, brand.logoUrl),
+                    onPressed: () async {
+                      final TextEditingController reasonController =
+                          TextEditingController();
+                      String? reason = await Get.dialog<String>(
+                        AlertDialog(
+                          title: const Text("Reject Brand"),
+                          content: TextFormField(
+                            controller: reasonController,
+                            maxLines: 3,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              labelText: "Reason for rejection",
+                              hintText: "Enter the reason here",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Get.back(),
+                              child: const Text("Cancel"),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                final r = reasonController.text.trim();
+                                if (r.isEmpty) {
+                                  Get.snackbar(
+                                    "Error",
+                                    "Please enter a rejection reason.",
+                                  );
+                                  return;
+                                }
+                                Get.back(result: r);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: themeColor,
+                              ),
+                              child: const Text(
+                                "Submit",
+                                style: TextStyle(color: white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (reason != null && reason.isNotEmpty) {
+                        brandService.rejectBrand(brand, reason);
+                      }
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey.shade400,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -182,94 +235,6 @@ class BrandDetailScreen extends StatelessWidget {
       return shippingInfo.join(', ');
     }
     return shippingInfo.toString();
-  }
-
-  Future<void> _updateStatus(String newStatus, String docId) async {
-    try {
-      await FirebaseFirestore.instance.collection('brands').doc(docId).update({
-        'status': newStatus,
-        'rejectionReason': FieldValue.delete(),
-      });
-
-      Get.back();
-      Get.snackbar(
-        "Success",
-        newStatus == 'approved' ? "Brand approved" : "Brand rejected",
-        backgroundColor: newStatus == 'approved' ? Colors.green : Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } catch (e) {
-      Get.snackbar("Error", "Something went wrong");
-    }
-  }
-
-  Future<void> rejectBrand(String brandId, String? logoUrl) async {
-    final TextEditingController reasonController = TextEditingController();
-
-    String? rejectionReason = await Get.dialog<String>(
-      AlertDialog(
-        title: const Text("Reject Brand"),
-        content: TextFormField(
-          controller: reasonController,
-          maxLines: 3,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: "Reason for rejection",
-            hintText: "Enter the reason here",
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              final reason = reasonController.text.trim();
-              if (reason.isEmpty) {
-                Get.snackbar("Error", "Please enter a rejection reason.");
-                return;
-              }
-              Get.back(result: reason);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.brown),
-            child: const Text("Submit"),
-          ),
-        ],
-      ),
-    );
-
-    if (rejectionReason == null || rejectionReason.isEmpty) return;
-
-    final docRef = FirebaseFirestore.instance.collection('brands').doc(brandId);
-
-    // Delete logo if it exists
-    if (logoUrl != null && logoUrl.isNotEmpty) {
-      try {
-        final ref = FirebaseStorage.instance.refFromURL(logoUrl);
-        await ref.delete();
-      } catch (e) {
-        debugPrint("⚠️ Failed to delete logo: $e");
-      }
-    }
-
-    try {
-      await docRef.update({
-        "logoUrl": FieldValue.delete(),
-        "status": "rejected",
-        "rejectionReason": rejectionReason,
-      });
-
-      Get.back();
-      Get.snackbar(
-        "Rejected",
-        "Brand has been rejected",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } catch (e) {
-      Get.snackbar("Error", "Failed to reject brand");
-    }
   }
 
   Future<void> uploadBrandLogo(BrandUser brand) async {
