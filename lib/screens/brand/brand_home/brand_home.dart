@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../routes/app_routes.dart';
 
 class BrandHomeScreen extends StatelessWidget {
@@ -12,6 +11,8 @@ class BrandHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -28,7 +29,6 @@ class BrandHomeScreen extends StatelessWidget {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.brown,
         icon: const Icon(Icons.add, color: Colors.white),
@@ -44,7 +44,6 @@ class BrandHomeScreen extends StatelessWidget {
           Get.toNamed(AppRoutes.addProducts);
         },
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -52,6 +51,7 @@ class BrandHomeScreen extends StatelessWidget {
             stream:
                 FirebaseFirestore.instance
                     .collection('products')
+                    .where('brandId', isEqualTo: currentUserId)
                     .orderBy('createdAt', descending: true)
                     .snapshots(),
             builder: (context, snapshot) {

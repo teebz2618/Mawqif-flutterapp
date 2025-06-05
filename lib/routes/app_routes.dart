@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:mawqif/screens/brand/brand_dashboard.dart';
 import 'package:mawqif/screens/brand/brand_home/add_products.dart';
 import 'package:mawqif/screens/brand/brand_pending_screen.dart';
+import 'package:mawqif/screens/brand/brand_promotion/banner_detail.dart';
+import 'package:mawqif/screens/brand/brand_promotion/promotional_banner.dart';
 import 'package:mawqif/screens/brand/brand_rejected.dart';
 import '../screens/admin/views/admin_dashboard.dart';
 import '../screens/admin/views/brand_detail.dart';
@@ -15,7 +17,7 @@ import '../screens/brand/brand_home/product_detail_screen.dart';
 import '../screens/splash/pre_splash_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import 'package:mawqif/screens/user/user_dashboard.dart';
-import '../screens/user/user_home/product_detail.dart';
+import '../screens/user/user_home/user_product_detail.dart';
 import '../screens/welcome/welcome_screen.dart';
 import '../screens/auth/register/password_prompt.dart';
 
@@ -39,6 +41,8 @@ class AppRoutes {
   static const userProductDetail = '/userProductDetail';
   static const addProducts = '/addProducts';
   static const editProducts = '/editProducts';
+  static const promotionalBanner = '/promotionalBanner';
+  static const bannerDetail = '/bannerDetail';
 
   static final routes = [
     GetPage(name: preSplash, page: () => const PreSplashScreen()),
@@ -60,5 +64,7 @@ class AppRoutes {
     GetPage(name: userProductDetail, page: () => UserProductDetail()),
     GetPage(name: addProducts, page: () => AddProductScreen()),
     GetPage(name: editProducts, page: () => EditProductScreen()),
+    GetPage(name: promotionalBanner, page: () => PromotionalBanner()),
+    GetPage(name: bannerDetail, page: () => BannerDetailScreen()),
   ];
 }

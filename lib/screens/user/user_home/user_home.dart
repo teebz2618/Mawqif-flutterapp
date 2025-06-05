@@ -5,6 +5,11 @@ import 'package:geocoding/geocoding.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mawqif/screens/user/user_home/accessories.dart';
 import 'package:mawqif/screens/user/user_home/product_categories.dart';
+import 'package:get/get.dart';
+import 'package:mawqif/screens/user/user_home/user_product_detail.dart';
+import 'package:country_picker/country_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:mawqif/services/currency_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,33 +19,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _country = "Detecting...";
-  int _selectedTab = -1; // 0 = Newest, 1 = Sale, 2 = Best Sellers
-
-  Stream<QuerySnapshot> getProductsStream() {
-    // Start with the products collection
-    Query query = FirebaseFirestore.instance.collection('products');
-
-    // Filter by selected tab
-    if (_selectedTab == 0) {
-      query = query.where('isNewCollection', isEqualTo: true);
-    } else if (_selectedTab == 1) {
-      query = query.where('isFlashSale', isEqualTo: true);
-    } else if (_selectedTab == 2) {
-      query = query.where('isBestSeller', isEqualTo: true);
-    }
-
-    // Order by createdAt descending
-    return query.orderBy('createdAt', descending: true).snapshots();
-  }
-
-  Stream<QuerySnapshot> getAccessoriesStream() {
-    return FirebaseFirestore.instance
-        .collection('products')
-        .where('category', isEqualTo: 'Accessories')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
-  }
+  Country? _selectedCountry;
+  int _selectedTab = 0; // 0 = Newest, 1 = Sale, 2 = Best Sellers
 
   @override
   void initState() {
@@ -54,38 +34,41 @@ class _HomeScreenState extends State<HomeScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-
       if (permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always) {
         Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
         );
-
         List<Placemark> placemarks = await placemarkFromCoordinates(
           position.latitude,
           position.longitude,
         );
-
+        final detectedCountry = placemarks.first.isoCountryCode ?? "US";
         setState(() {
-          _country = placemarks.first.country ?? "Unknown";
+          _selectedCountry = Country.parse(detectedCountry);
         });
       }
     } catch (e) {
       setState(() {
-        _country = "Unavailable";
+        _selectedCountry = Country.parse("US");
       });
     }
   }
 
+  Stream<QuerySnapshot> getProductsStream() {
+    Query query = FirebaseFirestore.instance.collection('products');
+    if (_selectedTab == 0) {
+      query = query.where('isNewCollection', isEqualTo: true);
+    } else if (_selectedTab == 1) {
+      query = query.where('isFlashSale', isEqualTo: true);
+    } else if (_selectedTab == 2) {
+      query = query.where('isBestSeller', isEqualTo: true);
+    }
+    return query.orderBy('createdAt', descending: true).snapshots();
+  }
+
   @override
   Widget build(BuildContext context) {
-    String category =
-        _selectedTab == 0
-            ? "Newest"
-            : _selectedTab == 1
-            ? "Sale"
-            : "Best Sellers";
-
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -94,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                /// --- Top bar (Location + Wishlist) ---
+                // --- Location & Wishlist ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -102,71 +85,145 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const Icon(Icons.location_on, color: Colors.grey),
                         const SizedBox(width: 5),
-                        Text(
-                          _country,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        GestureDetector(
+                          onTap: () {
+                            showCountryPicker(
+                              context: context,
+                              showPhoneCode: false,
+                              onSelect: (Country country) {
+                                setState(() {
+                                  _selectedCountry = country;
+                                });
+                              },
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Text(_selectedCountry?.name ?? "Detecting..."),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.grey,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(
-                        Icons.favorite_border,
-                        color: Colors.black,
-                        size: 26,
-                      ),
-                      onPressed: () {
-                        // Navigate to Wishlist
-                      },
+                      icon: const Icon(Icons.favorite_border, size: 26),
+                      onPressed: () {},
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 15),
 
-                /// --- Carousel (New Collection) ---
-                CarouselSlider(
-                  items: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
-                        gradient: const LinearGradient(
-                          colors: [Colors.purple, Colors.pink],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                // --- Banner Carousel ---
+                StreamBuilder<QuerySnapshot>(
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection("promotional_banners")
+                          .orderBy("createdAt", descending: true)
+                          .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const SizedBox(
+                        height: 150,
+                        child: Center(child: Text("No banners available.")),
+                      );
+                    }
+                    final banners = snapshot.data!.docs;
+                    return CarouselSlider.builder(
+                      itemCount: banners.length,
+                      options: CarouselOptions(
+                        height: 150,
+                        autoPlay: true,
+                        enlargeCenterPage: true,
+                        viewportFraction: 0.9,
                       ),
-                      child: const Center(
-                        child: Text(
-                          "New Collection\nDiscover our latest arrivals",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      itemBuilder: (context, index, realIndex) {
+                        final data =
+                            banners[index].data() as Map<String, dynamic>;
+                        final imageUrl = data['imageUrl'] ?? "";
+                        final title = data['title'] ?? "";
+                        final subtitle = data['subtitle'] ?? "";
+                        final link = data['link'] as Map<String, dynamic>?;
+                        return GestureDetector(
+                          onTap: () async {
+                            if (link != null && link['type'] == 'product') {
+                              final doc =
+                                  await FirebaseFirestore.instance
+                                      .collection('products')
+                                      .doc(link['targetId'])
+                                      .get();
+                              if (doc.exists) {
+                                Get.to(
+                                  () => const UserProductDetail(),
+                                  arguments: {
+                                    'productId': doc.id,
+                                    'productData': doc.data()!,
+                                  },
+                                );
+                              }
+                            }
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              image:
+                                  imageUrl.isNotEmpty
+                                      ? DecorationImage(
+                                        image: NetworkImage(imageUrl),
+                                        fit: BoxFit.cover,
+                                      )
+                                      : null,
+                              gradient:
+                                  imageUrl.isEmpty
+                                      ? const LinearGradient(
+                                        colors: [Colors.purple, Colors.pink],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                      : null,
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    subtitle,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  options: CarouselOptions(
-                    height: 150,
-                    autoPlay: true,
-                    enlargeCenterPage: true,
-                  ),
+                        );
+                      },
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 20),
 
-                /// --- Category Section ---
+                // --- Categories ---
                 const Text(
                   "Category",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 const SizedBox(height: 10),
-
                 Row(
                   children: [
                     _buildCategoryCard(context, "Thobes", Icons.male),
@@ -177,13 +234,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                /// --- Accessories Section ---
+                // --- Accessories ---
                 const Text(
                   "Accessories",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 const SizedBox(height: 10),
-
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
@@ -204,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 25),
 
-                /// --- Product Tabs ---
+                // --- Product Tabs ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -215,51 +271,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 const SizedBox(height: 15),
-                _selectedTab == -1
-                    ? const SizedBox.shrink()
-                    : StreamBuilder<QuerySnapshot>(
-                      stream: getProductsStream(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
 
-                        final products = snapshot.data!;
-                        if (products.docs.isEmpty) {
-                          return const Center(child: Text("No products found"));
-                        }
-
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: products.docs.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.65,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                              ),
-                          itemBuilder: (context, index) {
-                            final product =
-                                products.docs[index].data()
-                                    as Map<String, dynamic>;
-                            return _buildProductCard(
-                              product["title"],
-                              "\$${product["price"]}",
-                              product["images"] != null &&
-                                      product["images"].isNotEmpty
-                                  ? product["images"][0]
-                                  : null,
-                            );
-                          },
-                        );
+                // --- Products Grid ---
+                StreamBuilder<QuerySnapshot>(
+                  stream: getProductsStream(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final products = snapshot.data!;
+                    if (products.docs.isEmpty) {
+                      return const Center(child: Text("No products found"));
+                    }
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: products.docs.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            mainAxisExtent: 390,
+                          ),
+                      itemBuilder: (context, index) {
+                        final product =
+                            products.docs[index].data() as Map<String, dynamic>;
+                        final id = products.docs[index].id;
+                        return _buildProductCard(product, id);
                       },
-                    ),
-
-                const SizedBox(height: 20),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -333,15 +376,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Fixed Tab Widget
   Widget _buildTab(String title, int index) {
     bool isSelected = _selectedTab == index;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTab = index;
-        });
-      },
+      onTap: () => setState(() => _selectedTab = index),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
@@ -364,79 +402,198 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProductCard(String title, String price, String? imageUrl) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 4,
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.grey.shade300, width: 0.5),
-              ),
-              child:
-                  imageUrl != null
-                      ? ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (_, __, ___) => const Icon(
-                                Icons.broken_image,
-                                size: 35,
-                                color: Colors.grey,
-                              ),
-                        ),
-                      )
-                      : const Icon(
-                        Icons.image_outlined,
-                        size: 35,
-                        color: Colors.grey,
-                      ),
-            ),
-          ),
+  Widget _buildProductCard(Map<String, dynamic> product, String id) {
+    final title = product['title'] ?? 'No Title';
+    final description =
+        (product['description'] as String?)?.isNotEmpty == true
+            ? product['description']
+            : 'No description available';
+    final basePrice = (product['price'] as num?)?.toDouble() ?? 0.0;
+    final discount = (product['discount'] as num?)?.toDouble() ?? 0.0;
+    final imageUrl =
+        (product['images'] != null && (product['images'] as List).isNotEmpty)
+            ? product['images'][0]
+            : null;
 
-          /// Product Details
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+    if (_selectedCountry == null)
+      return const Center(child: CircularProgressIndicator());
+
+    final currency = CurrencyService.getCurrencyFromCountryCode(
+      _selectedCountry!.countryCode,
+    );
+
+    return FutureBuilder<double>(
+      future: CurrencyService.convertPrice(
+        basePrice,
+        fromCurrency: "USD",
+        toCurrency: currency.code,
+      ),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
+        final convertedPrice = snapshot.data ?? basePrice;
+        final discountedPrice =
+            (discount > 0)
+                ? convertedPrice - (convertedPrice * discount / 100)
+                : null;
+
+        Widget priceSection =
+            discountedPrice != null
+                ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      NumberFormat.currency(
+                        name: currency.code,
+                        symbol: currency.symbol,
+                      ).format(convertedPrice),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          NumberFormat.currency(
+                            name: currency.code,
+                            symbol: currency.symbol,
+                          ).format(discountedPrice),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          "${discount.toStringAsFixed(0)}% OFF",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+                : SizedBox(
+                  height: 38,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      NumberFormat.currency(
+                        name: currency.code,
+                        symbol: currency.symbol,
+                      ).format(convertedPrice),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ),
+                );
+
+        return GestureDetector(
+          onTap:
+              () => Get.to(
+                () => const UserProductDetail(),
+                arguments: {'productId': id, 'productData': product},
+              ),
+          child: Container(
+            padding: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300, width: 0.5),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
-                    color: Colors.black87,
+                SizedBox(
+                  height: 190,
+                  width: double.infinity,
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 0.5,
+                      ),
+                    ),
+                    child:
+                        imageUrl != null
+                            ? ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.network(imageUrl, fit: BoxFit.cover),
+                            )
+                            : const Icon(
+                              Icons.image_outlined,
+                              size: 35,
+                              color: Colors.grey,
+                            ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  price,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Colors.black,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      priceSection,
+                      const SizedBox(height: 5),
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {},
+                              child: const Text("Add to Cart"),
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () {},
+                              child: const Text("Buy Now"),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

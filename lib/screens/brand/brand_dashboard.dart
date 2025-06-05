@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:mawqif/screens/brand/brand_home/brand_home.dart';
+import 'package:mawqif/screens/brand/brand_promotion/promotional_banner.dart';
 import 'package:mawqif/screens/brand/notification/brand_notification.dart';
 import 'brand_profile/brand_profile.dart';
 
@@ -105,6 +106,7 @@ class _BrandDashboardState extends State<BrandDashboard> {
       BrandHomeScreen(brandName: _brandName),
       const Center(child: Text('Orders Screen Placeholder')),
       BrandNotificationScreen(brandId: brandId),
+      PromotionalBanner(),
       BrandProfileScreen(),
     ];
 
@@ -126,6 +128,10 @@ class _BrandDashboardState extends State<BrandDashboard> {
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications_outlined),
             label: 'Notifications',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.campaign_outlined),
+            label: 'Promotions',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
