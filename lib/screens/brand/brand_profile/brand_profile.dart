@@ -6,8 +6,10 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mawqif/screens/brand/brand_profile/return_policy.dart';
 import '../../../constants/app_colors.dart';
 import '../../user/profile/privacy_policy.dart';
+import 'package:country_picker/country_picker.dart';
 
 class BrandProfileScreen extends StatefulWidget {
   const BrandProfileScreen({super.key});
@@ -35,12 +37,18 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
   String _logoUrl = '';
   bool _loading = true;
   bool _uploadingImage = false;
+  int _returnDays = 7;
 
   @override
   void initState() {
     super.initState();
     _initBrandListener();
     _attachTextListeners();
+
+    _nameController.addListener(() {
+      setState(() {});
+    });
+
     // Attach listener for shipping updates
     _shippingController.addListener(() {
       _shipDebounce?.cancel();
@@ -99,10 +107,11 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
           } else if (remoteShipRaw is List) {
             remoteShip = remoteShipRaw.map((e) => e.toString()).toList();
           }
-
-          final remoteShipStr = remoteShip.join(", ");
-          if (_shippingController.text != remoteShipStr) {
-            _shippingController.text = remoteShipStr;
+          final remoteDays = data['returnDays'];
+          if (remoteDays != null &&
+              remoteDays is int &&
+              remoteDays != _returnDays) {
+            setState(() => _returnDays = remoteDays);
           }
         }
 
@@ -390,9 +399,97 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            _buildLabel('Select Countries (if not Worldwide)'),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  showCountryPicker(
+                    context: context,
+                    showPhoneCode: false,
+                    onSelect: (country) {
+                      final current =
+                          _shippingController.text
+                              .split(',')
+                              .map((e) => e.trim())
+                              .where((e) => e.isNotEmpty)
+                              .toList();
+                      if (!current.contains(country.name)) {
+                        current.add(country.name);
+                        _shippingController.text = current.join(', ');
+                      }
+                    },
+                  );
+                },
+                icon: const Icon(Icons.add_location_alt),
+                label: const Text("Add Country"),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            _buildLabel('Return Policy - Days'),
+            DropdownButtonFormField<int>(
+              value: _returnDays,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: brown20,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+              ),
+              items:
+                  [7, 14, 30, 60, 90]
+                      .map(
+                        (e) =>
+                            DropdownMenuItem(value: e, child: Text('$e days')),
+                      )
+                      .toList(),
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() => _returnDays = val);
+                final brandName =
+                    _nameController.text.trim().isEmpty
+                        ? "Your Brand"
+                        : _nameController.text.trim();
+                final policyText =
+                    "All products from $brandName can be returned within $val days of delivery. Please ensure items are unused and in original packaging. Refunds will be processed after inspection.";
+                _updateField('returnDays', val);
+                _updateField('returnPolicy', policyText);
+              },
+            ),
 
             const SizedBox(height: 24),
-
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryBrown,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ReturnPolicyScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.policy, size: 20, color: Colors.white),
+                label: const Text(
+                  'Return Policy',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             // Action buttons
             Column(
               children: [
@@ -482,7 +579,7 @@ class _BrandProfileScreenState extends State<BrandProfileScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Small hint text
                 Text(
