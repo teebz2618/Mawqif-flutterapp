@@ -44,6 +44,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool isFlashSale = false;
   bool isNewCollection = false;
   bool isBestSeller = false;
+
   bool get _hasChanges {
     return titleController.text.isNotEmpty ||
         descriptionController.text.isNotEmpty ||
@@ -66,32 +67,32 @@ class _AddProductScreenState extends State<AddProductScreen> {
         context: context,
         builder:
             (context) => AlertDialog(
-              title: const Text('Discard Changes?'),
-              content: const Text(
-                'You have unsaved changes. Do you want to discard them and leave?',
+          title: const Text('Discard Changes?'),
+          content: const Text(
+            'You have unsaved changes. Do you want to discard them and leave?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Wait',
+                style: TextStyle(color: Colors.black),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text(
-                    'Wait',
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: themeColor),
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text(
-                    'Discard',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
             ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: themeColor),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                'Discard',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       );
       return discard ?? false;
     }
-    return true; // no changes, allow pop
+    return true;
   }
 
   List<String> get availableAccessories {
@@ -195,7 +196,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// CATEGORY
+              /// Category Dropdown
               Text(
                 "Product Category",
                 style: TextStyle(
@@ -222,18 +223,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                     isExpanded: true,
                     items:
-                        availableCategories.map((String category) {
-                          return DropdownMenuItem<String>(
-                            value: category,
-                            child: Text(category),
-                          );
-                        }).toList(),
+                    availableCategories.map((String category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
                     onChanged: onCategoryChanged,
                   ),
                 ),
               ),
 
-              /// GENDER for Thobes
+              /// Gender Dropdown
               if (selectedCategory == 'Thobes') ...[
                 const SizedBox(height: 20),
                 Text(
@@ -262,12 +263,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ),
                       isExpanded: true,
                       items:
-                          availableGenders.map((String gender) {
-                            return DropdownMenuItem<String>(
-                              value: gender,
-                              child: Text(gender),
-                            );
-                          }).toList(),
+                      availableGenders.map((String gender) {
+                        return DropdownMenuItem<String>(
+                          value: gender,
+                          child: Text(gender),
+                        );
+                      }).toList(),
                       onChanged: (gender) {
                         setState(() {
                           selectedGender = gender;
@@ -280,7 +281,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ],
               const SizedBox(height: 12),
 
-              /// IMAGES
+              /// Images
               Text(
                 "Product Images",
                 style: TextStyle(
@@ -294,7 +295,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 runSpacing: 10,
                 children: [
                   ...productImages.map(
-                    (img) => Stack(
+                        (img) => Stack(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
@@ -343,14 +344,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               const SizedBox(height: 20),
 
-              /// TITLE
+              /// Title, Description, Price
               TextField(
                 controller: titleController,
                 decoration: const InputDecoration(labelText: 'Product Title'),
               ),
               const SizedBox(height: 10),
-
-              /// DESCRIPTION
               TextField(
                 controller: descriptionController,
                 maxLines: 3,
@@ -359,8 +358,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-
-              /// PRICE
               TextField(
                 controller: priceController,
                 keyboardType: TextInputType.number,
@@ -368,7 +365,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               const SizedBox(height: 20),
 
-              /// COLORS
+              /// Colors
               Text(
                 "Available Colors",
                 style: TextStyle(
@@ -435,7 +432,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               const SizedBox(height: 20),
 
-              /// SIZES
+              /// Sizes
               Text(
                 "Available Sizes",
                 style: TextStyle(
@@ -447,23 +444,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
               Wrap(
                 spacing: 8,
                 children:
-                    availableSizes.map((size) {
-                      final isSelected = selectedSizes.contains(size);
-                      return ChoiceChip(
-                        label: Text(size),
-                        selected: isSelected,
-                        selectedColor: themeColor.withOpacity(0.8),
-                        backgroundColor: Colors.grey[200],
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black,
-                        ),
-                        onSelected: (_) => toggleSelection(selectedSizes, size),
-                      );
-                    }).toList(),
+                availableSizes.map((size) {
+                  final isSelected = selectedSizes.contains(size);
+                  return ChoiceChip(
+                    label: Text(size),
+                    selected: isSelected,
+                    selectedColor: themeColor.withOpacity(0.8),
+                    backgroundColor: Colors.grey[200],
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black,
+                    ),
+                    onSelected: (_) => toggleSelection(selectedSizes, size),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 20),
 
-              /// ACCESSORIES
+              /// Accessories
               if (selectedCategory != null &&
                   selectedGender != null &&
                   availableAccessories.isNotEmpty) ...[
@@ -478,30 +475,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 Wrap(
                   spacing: 8,
                   children:
-                      availableAccessories.map((accessory) {
-                        final isSelected = selectedAccessories.contains(
-                          accessory,
-                        );
-                        return ChoiceChip(
-                          label: Text(accessory),
-                          selected: isSelected,
-                          selectedColor: themeColor.withOpacity(0.8),
-                          backgroundColor: Colors.grey[200],
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black,
-                          ),
-                          onSelected:
-                              (_) => toggleSelection(
-                                selectedAccessories,
-                                accessory,
-                              ),
-                        );
-                      }).toList(),
+                  availableAccessories.map((accessory) {
+                    final isSelected = selectedAccessories.contains(
+                      accessory,
+                    );
+                    return ChoiceChip(
+                      label: Text(accessory),
+                      selected: isSelected,
+                      selectedColor: themeColor.withOpacity(0.8),
+                      backgroundColor: Colors.grey[200],
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black,
+                      ),
+                      onSelected:
+                          (_) => toggleSelection(
+                        selectedAccessories,
+                        accessory,
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 10),
               ],
 
-              /// FLAGS
+              /// Flags
               SwitchListTile(
                 title: const Text(
                   "Flash Sale",
@@ -512,9 +509,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 onChanged: (value) {
                   setState(() {
                     isFlashSale = value;
-                    if (!value) {
-                      discountController.clear();
-                    }
+                    if (!value) discountController.clear();
                   });
                 },
               ),
@@ -560,7 +555,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               const SizedBox(height: 20),
 
-              /// ADD BUTTON
+              /// Add Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -572,18 +567,62 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () async {
-                    if (titleController.text.isEmpty ||
-                        priceController.text.isEmpty ||
-                        productImages.isEmpty ||
-                        selectedCategory == null) {
+                    if (titleController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Product title is required'),
+                        ),
+                      );
+                      return;
+                    }
+                    if (priceController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Price is required')),
+                      );
+                      return;
+                    }
+                    if (selectedCategory == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select a category'),
+                        ),
+                      );
+                      return;
+                    }
+                    if (selectedCategory == 'Thobes' &&
+                        selectedGender == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select a gender for Thobes'),
+                        ),
+                      );
+                      return;
+                    }
+                    if (productImages.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Please fill title, price, select a category, and add at least one image',
+                            'At least one product image is required',
                           ),
                         ),
                       );
                       return;
+                    }
+                    if (isFlashSale && discountController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Discount is required for Flash Sale'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    double? discountValue;
+                    if (isFlashSale) {
+                      discountValue =
+                          double.tryParse(discountController.text.trim()) ?? 0;
+                      if (discountValue < 0) discountValue = 0;
+                      if (discountValue > 100) discountValue = 100;
                     }
 
                     showDialog(
@@ -591,65 +630,99 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       barrierDismissible: false,
                       builder:
                           (_) =>
-                              const Center(child: CircularProgressIndicator()),
+                      const Center(child: CircularProgressIndicator()),
                     );
 
                     try {
+                      // Upload images
                       List<String> imageUrls = [];
                       for (var img in productImages) {
                         final ref = FirebaseStorage.instance
                             .ref()
                             .child('product_images')
                             .child(
-                              '${DateTime.now().millisecondsSinceEpoch}_${img.name}',
-                            );
+                          '${DateTime.now().millisecondsSinceEpoch}_${img.name}',
+                        );
                         await ref.putFile(File(img.path));
                         final url = await ref.getDownloadURL();
                         imageUrls.add(url);
                       }
 
+                      // 🔹 Fetch brand info
+                      final brandId = FirebaseAuth.instance.currentUser!.uid;
+                      final brandDoc =
+                      await FirebaseFirestore.instance
+                          .collection('brands')
+                          .doc(brandId)
+                          .get();
+
+                      final brandName =
+                      brandDoc.exists
+                          ? (brandDoc.data()
+                      as Map<String, dynamic>)['name'] ??
+                          'Unknown Brand'
+                          : 'Unknown Brand';
+
+                      // Build product data
                       Map<String, dynamic> productData = {
-                        'brandId': FirebaseAuth.instance.currentUser!.uid,
+                        'brandId': brandId,
+                        'brandName': brandName, // 👈 now saved
                         'title': titleController.text.trim(),
                         'description': descriptionController.text.trim(),
                         'price': double.parse(priceController.text.trim()),
                         'category': selectedCategory,
+                        'gender':
+                        selectedCategory == 'Thobes'
+                            ? selectedGender
+                            : null,
                         'accessories': selectedAccessories,
                         'images': imageUrls,
                         'colors':
-                            selectedColors.map((color) => color.value).toList(),
+                        selectedColors.map((color) => color.value).toList(),
                         'sizes': selectedSizes,
                         'createdAt': FieldValue.serverTimestamp(),
                         'isFlashSale': isFlashSale,
                         'isNewCollection': isNewCollection,
                         'isBestSeller': isBestSeller,
-                        'discount':
-                            isFlashSale && discountController.text.isNotEmpty
-                                ? double.parse(discountController.text.trim())
-                                : null,
                       };
+
+                      if (isFlashSale) {
+                        productData['discount'] = discountValue;
+                      }
 
                       await FirebaseFirestore.instance
                           .collection('products')
                           .add(productData);
-                      Navigator.of(context).pop();
+
+                      Navigator.of(context).pop(); // close loading dialog
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Product added successfully'),
+                        ),
+                      );
+
+                      // Navigate back to dashboard
                       Navigator.pushNamedAndRemoveUntil(
                         context,
                         AppRoutes.brandDashboard,
-                        (route) => false,
+                            (route) => false,
                       );
-                      Navigator.pushNamed(context, AppRoutes.brandDashboard);
                     } catch (e) {
-                      Navigator.of(context).pop();
+                      Navigator.of(context).pop(); // close loading dialog
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Failed to add product: $e')),
                       );
                     }
                   },
-                  icon: const Icon(Icons.add_circle, color: Colors.white),
+                  icon: const Icon(Icons.check, color: Colors.white),
                   label: const Text(
                     "Add Product",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

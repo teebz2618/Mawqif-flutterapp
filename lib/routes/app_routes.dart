@@ -5,6 +5,7 @@ import 'package:mawqif/screens/brand/brand_pending_screen.dart';
 import 'package:mawqif/screens/brand/brand_promotion/banner_detail.dart';
 import 'package:mawqif/screens/brand/brand_promotion/promotional_banner.dart';
 import 'package:mawqif/screens/brand/brand_rejected.dart';
+import 'package:mawqif/screens/user/user_home/thobes_screen.dart';
 import '../screens/admin/views/admin_dashboard.dart';
 import '../screens/admin/views/brand_detail.dart';
 import '../screens/auth/login/login.dart';
@@ -43,6 +44,7 @@ class AppRoutes {
   static const editProducts = '/editProducts';
   static const promotionalBanner = '/promotionalBanner';
   static const bannerDetail = '/bannerDetail';
+  static const thobeScreen = '/thobeScreen';
 
   static final routes = [
     GetPage(name: preSplash, page: () => const PreSplashScreen()),
@@ -66,5 +68,6 @@ class AppRoutes {
     GetPage(name: editProducts, page: () => EditProductScreen()),
     GetPage(name: promotionalBanner, page: () => PromotionalBanner()),
     GetPage(name: bannerDetail, page: () => BannerDetailScreen()),
+    GetPage(name: thobeScreen, page: () => ThobesScreen()),
   ];
 }

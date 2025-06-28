@@ -33,13 +33,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final bool isNewCollection = productData['isNewCollection'] ?? false;
     final bool isBestSeller = productData['isBestSeller'] ?? false;
     final double? price =
-        (productData['price'] != null)
-            ? double.tryParse(productData['price'].toString())
-            : null;
+    (productData['price'] != null)
+        ? double.tryParse(productData['price'].toString())
+        : null;
     final double? discount =
-        (productData['discount'] != null)
-            ? double.tryParse(productData['discount'].toString())
-            : null;
+    (productData['discount'] != null)
+        ? double.tryParse(productData['discount'].toString())
+        : null;
 
     double? calculatedNewPrice;
     if (price != null && discount != null && discount > 0) {
@@ -162,10 +162,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         (productData['description'] == null ||
-                                productData['description']
-                                    .toString()
-                                    .trim()
-                                    .isEmpty)
+                            productData['description']
+                                .toString()
+                                .trim()
+                                .isEmpty)
                             ? 'No description available'
                             : productData['description'],
                         style: const TextStyle(
@@ -185,7 +185,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         spacing: 8,
                         runSpacing: 4,
                         children: [
-                          if (productData['category'] != null)
+                          if (productData['category'] == 'Thobes' &&
+                              productData['gender'] != null)
+                            _chip("${productData['gender']} Thobe")
+                          else if (productData['category'] != null)
                             _chip(productData['category']),
                           if (isNewCollection) _chip("New Collection"),
                           if (isBestSeller) _chip("Best Seller"),
@@ -212,19 +215,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               child: Wrap(
                                 spacing: 8,
                                 children:
-                                    colors.map<Widget>((colorValue) {
-                                      return Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          color: Color(colorValue),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.grey.shade300,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
+                                colors.map<Widget>((colorValue) {
+                                  return Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: Color(colorValue),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
                             ),
                           ],
@@ -299,7 +302,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ),
                 onPressed: () async {
                   final updatedData = await Get.to(
-                    () => const EditProductScreen(),
+                        () => const EditProductScreen(),
                     arguments: {
                       'productId': productId,
                       'productData': productData,

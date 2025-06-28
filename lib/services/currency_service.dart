@@ -12,7 +12,7 @@ class CurrencyService {
     "PW": Currency(code: "USD", symbol: "\$"),
 
     // --- PKR ---
-    "PK": Currency(code: "PKR", symbol: "₨"),
+    "PK": Currency(code: "PKR", symbol: "₨. "),
 
     // --- AED ---
     "AE": Currency(code: "AED", symbol: "د.إ"),

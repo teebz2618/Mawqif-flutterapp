@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:mawqif/screens/user/brands/product_catalogue.dart';
+import 'package:get/get.dart';
 
 class BrandsScreen extends StatefulWidget {
   const BrandsScreen({super.key});
@@ -107,8 +109,19 @@ class _BrandsScreenState extends State<BrandsScreen> {
 
                       return GestureDetector(
                         onTap: () {
-                          // TODO: Navigate to brand detail screen
-                          // Get.toNamed(AppRoutes.brandDetail, arguments: {'brand': brand});
+                          // Navigate to ProductCatalogueScreen with brand data
+                          Get.to(
+                            () => ProductCatalogueScreen(
+                              brandData: {
+                                'id':
+                                    filteredBrands[index]
+                                        .id, // Firestore document ID
+                                'name': brand['name'] ?? 'Brand',
+                                'logoUrl': brand['logoUrl'] ?? '',
+                                'description': brand['description'] ?? '',
+                              },
+                            ),
+                          );
                         },
                         child: Container(
                           decoration: BoxDecoration(
