@@ -23,6 +23,12 @@ class _ThobesScreenState extends State<ThobesScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeCurrency();
+  }
+
+  Future<void> _initializeCurrency() async {
+    await _currencyHelper.ensureInitialized();
+    setState(() {}); // refresh UI after initialization
   }
 
   Stream<QuerySnapshot> getThobesStream() {
@@ -304,7 +310,7 @@ class _ThobesScreenState extends State<ThobesScreen> {
     if (_priceCache.containsKey(productId)) {
       return _priceCache[productId]!;
     }
-
+    await _currencyHelper.ensureInitialized();
     final convertedPrice = await _currencyHelper.convertPrice(basePrice);
     final discountedPrice =
         discount > 0

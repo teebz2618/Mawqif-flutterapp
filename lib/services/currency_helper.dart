@@ -15,8 +15,15 @@ class CurrencyHelper {
   Country? _country;
   Currency? _currency;
   bool _isDetecting = false;
+  bool isInitialized = false;
 
   Currency get currency => _currency ?? Currency(code: "USD", symbol: "\$");
+  Future<void> ensureInitialized() async {
+    if (!isInitialized) {
+      await _detectCountrySilently();
+      isInitialized = true;
+    }
+  }
 
   /// Silent detection (called once automatically)
   Future<void> _detectCountrySilently() async {

@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:mawqif/screens/user/user_home/user_product_detail.dart';
-import 'package:mawqif/services/currency_service.dart';
+import '../../../services/currency_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,40 +15,21 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Country? _selectedCountry;
+  final CurrencyHelper _currencyHelper = CurrencyHelper();
   int _selectedTab = 0; // 0 = Newest, 1 = Sale, 2 = Best Sellers
+
+  // Cache converted prices per product
+  final Map<String, Map<String, dynamic>> _priceCache = {};
 
   @override
   void initState() {
     super.initState();
-    _getLocation();
+    _initializeCurrency();
   }
 
-  Future<void> _getLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        final detectedCountry = placemarks.first.isoCountryCode ?? "US";
-        setState(() {
-          _selectedCountry = Country.parse(detectedCountry);
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _selectedCountry = Country.parse("US");
-      });
-    }
+  Future<void> _initializeCurrency() async {
+    await _currencyHelper.ensureInitialized();
+    setState(() {}); // Refresh UI after currency detection
   }
 
   Stream<QuerySnapshot> getProductsStream() {
@@ -67,6 +46,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_currencyHelper.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -88,16 +71,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             showCountryPicker(
                               context: context,
                               showPhoneCode: false,
-                              onSelect: (Country country) {
-                                setState(() {
-                                  _selectedCountry = country;
-                                });
+                              onSelect: (country) {
+                                _currencyHelper.setCountry(country);
+                                setState(() {}); // Refresh UI
                               },
                             );
                           },
                           child: Row(
                             children: [
-                              Text(_selectedCountry?.name ?? "Detecting..."),
+                              Text(_currencyHelper.countryName),
                               const SizedBox(width: 4),
                               const Icon(
                                 Icons.arrow_drop_down,
@@ -216,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // --- Categories ---
+                // --- Categories & Accessories ---
                 const Text(
                   "Category",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -229,10 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildCategoryCard(context, "Abayas", Icons.female),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
-                // --- Accessories ---
                 const Text(
                   "Accessories",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -284,7 +263,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     return GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      // ✅ Fix
                       itemCount: products.docs.length,
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
@@ -423,12 +401,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- PRODUCT LIST FOR CATEGORY / ACCESSORY ---
+  // --- PRODUCT LIST BY FILTER ---
   Widget _buildProductListByFilter({
     required String field,
     required String value,
   }) {
-    if (_selectedCountry == null) {
+    if (!_currencyHelper.isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -444,13 +422,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   .where(field, isEqualTo: value)
                   .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
-        }
         final products = snapshot.data!.docs;
-        if (products.isEmpty) {
+        if (products.isEmpty)
           return const Center(child: Text("No products found"));
-        }
 
         return GridView.builder(
           shrinkWrap: true,
@@ -466,7 +442,6 @@ class _HomeScreenState extends State<HomeScreen> {
           itemBuilder: (context, index) {
             final product = products[index].data() as Map<String, dynamic>;
             final id = products[index].id;
-
             return _buildProductCard(product, id, showButtons: false);
           },
         );
@@ -474,13 +449,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- PRODUCT CARD ---
+  // --- PRODUCT CARD WITH CURRENCY HELPER & CACHE ---
   Widget _buildProductCard(
     Map<String, dynamic> product,
     String id, {
-    bool showButtons = true, // default true
+    bool showButtons = true,
   }) {
-    final brandName = product['brandName'] ?? 'Unknown Brand';
     final title = product['title'] ?? 'No Title';
     final description =
         (product['description'] as String?)?.isNotEmpty == true
@@ -492,221 +466,209 @@ class _HomeScreenState extends State<HomeScreen> {
         (product['images'] != null && (product['images'] as List).isNotEmpty)
             ? product['images'][0]
             : null;
+    final brandName = product['brandName'] ?? 'Unknown Brand';
 
-    if (_selectedCountry == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    final currency = _currencyHelper.currency;
 
-    final currency = CurrencyService.getCurrencyFromCountryCode(
-      _selectedCountry!.countryCode,
-    );
-
-    return FutureBuilder<double>(
-      future: CurrencyService.convertPrice(
-        basePrice,
-        fromCurrency: "USD",
-        toCurrency: currency.code,
-      ),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final convertedPrice = snapshot.data ?? basePrice;
-        final discountedPrice =
-            (discount > 0)
+    // Use cached price if available
+    final cached = _priceCache[id];
+    if (cached == null) {
+      // Calculate and store
+      _currencyHelper.convertPrice(basePrice).then((convertedPrice) {
+        double? discountedPrice =
+            discount > 0
                 ? convertedPrice - (convertedPrice * discount / 100)
                 : null;
+        _priceCache[id] = {
+          'convertedPrice': convertedPrice,
+          'discountedPrice': discountedPrice,
+        };
+        setState(() {});
+      });
+      return const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-        Widget priceSection =
-            discountedPrice != null
-                ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    final convertedPrice = cached['convertedPrice'] as double;
+    final discountedPrice = cached['discountedPrice'] as double?;
+
+    Widget priceSection =
+        discountedPrice != null
+            ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  NumberFormat.currency(
+                    name: currency.code,
+                    symbol: currency.symbol,
+                  ).format(convertedPrice),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
                   children: [
                     Text(
                       NumberFormat.currency(
                         name: currency.code,
                         symbol: currency.symbol,
-                      ).format(convertedPrice),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          NumberFormat.currency(
-                            name: currency.code,
-                            symbol: currency.symbol,
-                          ).format(discountedPrice),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          "${discount.toStringAsFixed(0)}% OFF",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                )
-                : SizedBox(
-                  height: 38,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      NumberFormat.currency(
-                        name: currency.code,
-                        symbol: currency.symbol,
-                      ).format(convertedPrice),
+                      ).format(discountedPrice),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: Colors.red,
                       ),
                     ),
-                  ),
-                );
-
-        return GestureDetector(
-          onTap:
-              () => Get.to(
-                () => const UserProductDetail(),
-                arguments: {'productId': id, 'productData': product},
-              ),
-          child: Container(
-            padding: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300, width: 0.5),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: 160,
-                  width: double.infinity,
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 0.5,
+                    const SizedBox(width: 6),
+                    Text(
+                      "${discount.toStringAsFixed(0)}% OFF",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
                       ),
                     ),
-                    child:
-                        imageUrl != null
-                            ? ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Image.network(imageUrl, fit: BoxFit.cover),
-                            )
-                            : const Icon(
-                              Icons.image_outlined,
-                              size: 35,
-                              color: Colors.grey,
-                            ),
-                  ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    brandName,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      priceSection,
-                    ],
-                  ),
-                ),
-                if (showButtons) ...[
-                  const SizedBox(height: 6), // reduced spacing
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            side: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 1,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          onPressed: () {
-                            // TODO: Add to Cart logic
-                          },
-                          child: const Text(
-                            "Add to Cart",
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.favorite_border),
-                          onPressed: () {
-                            // TODO: Wishlist logic
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
-            ),
+            )
+            : SizedBox(
+              height: 38,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  NumberFormat.currency(
+                    name: currency.code,
+                    symbol: currency.symbol,
+                  ).format(convertedPrice),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+            );
+
+    return GestureDetector(
+      onTap:
+          () => Get.to(
+            () => const UserProductDetail(),
+            arguments: {'productId': id, 'productData': product},
           ),
-        );
-      },
+      child: Container(
+        padding: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 160,
+              width: double.infinity,
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                ),
+                child:
+                    imageUrl != null
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.network(imageUrl, fit: BoxFit.cover),
+                        )
+                        : const Icon(
+                          Icons.image_outlined,
+                          size: 35,
+                          color: Colors.grey,
+                        ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(
+                brandName,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 8),
+                  priceSection,
+                ],
+              ),
+            ),
+            if (showButtons) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        side: BorderSide(
+                          color: Theme.of(context).primaryColor,
+                          width: 1,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      onPressed: () {},
+                      child: const Text(
+                        "Add to Cart",
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.favorite_border),
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
