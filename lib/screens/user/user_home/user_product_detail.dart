@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:mawqif/constants/app_colors.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:mawqif/screens/user/user_home/wishlist/wishlist_provider.dart';
+import 'package:provider/provider.dart';
 
 class UserProductDetail extends StatefulWidget {
   const UserProductDetail({super.key});
@@ -144,29 +146,88 @@ class _UserProductDetailState extends State<UserProductDetail> {
                           ),
                           // Dots Indicator
                           Positioned(
-                            bottom: 8,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                images.length,
-                                (index) => AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 3,
-                                  ),
-                                  width: _currentPage == index ? 10 : 6,
-                                  height: _currentPage == index ? 10 : 6,
+                            top: 16,
+                            right: 16,
+                            child: Consumer<WishlistProvider>(
+                              builder: (context, wishlistProvider, child) {
+                                final isWishlisted = wishlistProvider
+                                    .isInWishlist(productId);
+
+                                return Container(
                                   decoration: BoxDecoration(
-                                    color:
-                                        _currentPage == index
-                                            ? Colors.brown
-                                            : Colors.grey.shade400,
+                                    color: Colors.white.withOpacity(0.9),
                                     shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    icon: AnimatedSwitcher(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      child: Icon(
+                                        isWishlisted
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        key: ValueKey(isWishlisted),
+                                        color:
+                                            isWishlisted
+                                                ? Colors.red
+                                                : Colors.grey,
+                                        size: 28,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      wishlistProvider.toggleWishlist(
+                                        productId,
+                                        productData,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          // Page indicators
+                          if (images.length > 1)
+                            Positioned(
+                              bottom: 16,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: List.generate(
+                                    images.length,
+                                    (index) => Container(
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 2,
+                                      ),
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            _currentPage == index
+                                                ? Colors.brown
+                                                : Colors.grey.shade400,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     )

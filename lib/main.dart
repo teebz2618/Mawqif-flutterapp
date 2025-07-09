@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mawqif/notification_service.dart';
 import 'package:mawqif/routes/app_routes.dart';
+import 'package:mawqif/screens/user/user_home/wishlist/wishlist_provider.dart';
 import 'package:mawqif/viewmodels/auth_viewmodel.dart';
 import 'constants/app_colors.dart';
 import 'firebase_options.dart';
@@ -27,7 +28,11 @@ void main() async {
   configLoading();
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthViewModel())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        ChangeNotifierProvider(create: (_) => WishlistProvider()),
+      ],
+
       child: OverlaySupport.global(child: MyApp()),
     ),
   );

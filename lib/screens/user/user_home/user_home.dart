@@ -5,7 +5,9 @@ import 'package:get/get.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:mawqif/screens/user/user_home/user_product_detail.dart';
+import 'package:mawqif/screens/user/user_home/wishlist/wishlist.dart';
 import '../../../services/currency_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,10 +18,46 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final CurrencyHelper _currencyHelper = CurrencyHelper();
+  final User? _user = FirebaseAuth.instance.currentUser;
   int _selectedTab = 0; // 0 = Newest, 1 = Sale, 2 = Best Sellers
 
   // Cache converted prices per product
   final Map<String, Map<String, dynamic>> _priceCache = {};
+
+  Future<void> _toggleWishlist(
+    String productId,
+    Map<String, dynamic> product,
+  ) async {
+    if (_user == null) return;
+
+    final wishlistRef = FirebaseFirestore.instance
+        .collection('wishlists')
+        .doc(_user!.uid)
+        .collection('items')
+        .doc(productId);
+
+    final doc = await wishlistRef.get();
+    if (doc.exists) {
+      // Remove from wishlist
+      await wishlistRef.delete();
+      Get.snackbar("Wishlist", "Removed from wishlist");
+    } else {
+      // Add to wishlist
+      await wishlistRef.set(product);
+      Get.snackbar("Wishlist", "Added to wishlist");
+    }
+  }
+
+  Stream<bool> _isInWishlist(String productId) {
+    if (_user == null) return const Stream.empty();
+    return FirebaseFirestore.instance
+        .collection('wishlists')
+        .doc(_user!.uid)
+        .collection('items')
+        .doc(productId)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
 
   @override
   void initState() {
@@ -92,7 +130,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.favorite_border, size: 26),
-                      onPressed: () {},
+                      onPressed: () {
+                        Get.to(() => WishlistScreen());
+                      },
                     ),
                   ],
                 ),
@@ -657,10 +697,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         "Add to Cart",
                         style: TextStyle(fontSize: 12),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.favorite_border),
-                      onPressed: () {},
                     ),
                   ],
                 ),

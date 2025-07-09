@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:badges/badges.dart';
 import 'package:mawqif/screens/user/user_home/user_home.dart';
 import 'brands/brands_screen.dart';
 import 'notifications/user_notification.dart';
@@ -22,6 +24,14 @@ class _UserDashboardState extends State<UserDashboard> {
     ProfileScreen(),
   ];
 
+  Stream<int> unreadNotificationsCount() {
+    return FirebaseFirestore.instance
+        .collection('notifications')
+        .where('read', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,7 +43,7 @@ class _UserDashboardState extends State<UserDashboard> {
         selectedItemColor: Colors.brown.shade800,
         unselectedItemColor: Colors.brown.shade400,
         type: BottomNavigationBarType.fixed,
-        items: const [
+        items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             label: 'Home',
@@ -43,7 +53,20 @@ class _UserDashboardState extends State<UserDashboard> {
             label: 'Brands',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none),
+            icon: StreamBuilder<int>(
+              stream: unreadNotificationsCount(),
+              builder: (context, snapshot) {
+                int count = snapshot.data ?? 0;
+                return Badge(
+                  showBadge: count > 0,
+                  badgeContent: Text(
+                    '$count',
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
+                  child: Icon(Icons.notifications_none),
+                );
+              },
+            ),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(

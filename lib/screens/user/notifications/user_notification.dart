@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
   String formatTimestamp(Timestamp? timestamp) {
     if (timestamp == null) return '';
     return DateFormat('MMM d, yyyy • hh:mm a').format(timestamp.toDate());
@@ -52,16 +57,21 @@ class NotificationsScreen extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final doc = docs[index];
-              final title = doc['title'] ?? 'No Title';
-              final body = doc['body'] ?? '';
-              final imageUrl = doc['imageUrl'];
-              final timestamp = doc['timestamp'] as Timestamp?;
+              final data = doc.data() as Map<String, dynamic>;
+
+              final title = data['title'] ?? 'No Title';
+              final body = data['body'] ?? '';
+              final imageUrl = data['imageUrl'];
+              final timestamp = data['timestamp'] as Timestamp?;
+              final isRead = data.containsKey('read') ? data['read'] : false;
 
               return NotificationCard(
                 title: title,
                 body: body,
                 date: formatTimestamp(timestamp),
                 imageUrl: imageUrl,
+                isRead: isRead,
+                docId: doc.id,
               );
             },
           );
@@ -72,17 +82,21 @@ class NotificationsScreen extends StatelessWidget {
 }
 
 class NotificationCard extends StatefulWidget {
+  final String docId;
   final String title;
   final String body;
   final String date;
   final String? imageUrl;
+  final bool isRead;
 
   const NotificationCard({
     super.key,
+    required this.docId,
     required this.title,
     required this.body,
     required this.date,
     this.imageUrl,
+    required this.isRead,
   });
 
   @override
@@ -92,14 +106,67 @@ class NotificationCard extends StatefulWidget {
 class _NotificationCardState extends State<NotificationCard>
     with TickerProviderStateMixin {
   bool _showImage = false;
+  late bool _isRead;
+
+  @override
+  void initState() {
+    super.initState();
+    _isRead = widget.isRead;
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _showImage = !_showImage;
-        });
+      onTap: () async {
+        final docRef = FirebaseFirestore.instance
+            .collection('notifications')
+            .doc(widget.docId);
+
+        final doc = await docRef.get();
+        final data = doc.data() as Map<String, dynamic>;
+        final isRead = data['read'] ?? false;
+
+        if (!isRead) {
+          await docRef.update({'read': true});
+          setState(() => _isRead = true);
+        }
+
+        if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
+          setState(() => _showImage = !_showImage);
+        }
+      },
+
+      onLongPress: () async {
+        bool? confirm = await showDialog<bool>(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('Delete Notification'),
+                content: const Text(
+                  'Are you sure you want to delete this notification?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+        );
+
+        if (confirm == true) {
+          await FirebaseFirestore.instance
+              .collection('notifications')
+              .doc(widget.docId)
+              .delete();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Notification deleted')));
+        }
       },
       child: Card(
         elevation: 3,
@@ -127,27 +194,28 @@ class _NotificationCardState extends State<NotificationCard>
               ),
 
               // Animated Image Section
-              AnimatedSize(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 300),
-                  opacity: _showImage ? 1.0 : 0.0,
-                  child:
-                      _showImage && widget.imageUrl != null
-                          ? Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                widget.imageUrl!,
-                                fit: BoxFit.cover,
+              if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty)
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: _showImage ? 1.0 : 0.0,
+                    child:
+                        _showImage
+                            ? Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  widget.imageUrl!,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                            ),
-                          )
-                          : const SizedBox.shrink(),
+                            )
+                            : const SizedBox.shrink(),
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 8),
 
