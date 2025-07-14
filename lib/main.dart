@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:mawqif/notification_service.dart';
+import 'package:mawqif/services/cart_service.dart';
+import 'package:mawqif/services/notification_service.dart';
 import 'package:mawqif/routes/app_routes.dart';
 import 'package:mawqif/screens/user/user_home/wishlist/wishlist_provider.dart';
 import 'package:mawqif/viewmodels/auth_viewmodel.dart';
@@ -16,7 +17,7 @@ import 'package:overlay_support/overlay_support.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+  Get.put(CartService());
   final notificationService = NotificationService();
   await notificationService.initFCM();
 

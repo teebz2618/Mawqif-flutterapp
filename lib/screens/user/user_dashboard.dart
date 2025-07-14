@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:badges/badges.dart';
 import 'package:mawqif/screens/user/user_home/user_home.dart';
 import 'brands/brands_screen.dart';
+import 'cart/add_to_cart.dart';
 import 'notifications/user_notification.dart';
 import 'profile/user_profile.dart';
 
@@ -20,7 +21,7 @@ class _UserDashboardState extends State<UserDashboard> {
     HomeScreen(),
     BrandsScreen(),
     NotificationsScreen(),
-    Center(child: Text('Cart')),
+    CartScreen(),
     ProfileScreen(),
   ];
 

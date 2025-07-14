@@ -1,26 +1,39 @@
 import 'package:get/get.dart';
+
+// Brand Screens
 import 'package:mawqif/screens/brand/brand_dashboard.dart';
 import 'package:mawqif/screens/brand/brand_home/add_products.dart';
+import 'package:mawqif/screens/brand/brand_home/edit_product_screen.dart';
+import 'package:mawqif/screens/brand/brand_home/product_detail_screen.dart';
 import 'package:mawqif/screens/brand/brand_pending_screen.dart';
 import 'package:mawqif/screens/brand/brand_promotion/banner_detail.dart';
 import 'package:mawqif/screens/brand/brand_promotion/promotional_banner.dart';
 import 'package:mawqif/screens/brand/brand_rejected.dart';
+
+// User Screens
+import 'package:mawqif/screens/user/user_dashboard.dart';
 import 'package:mawqif/screens/user/user_home/thobes_screen.dart';
+import 'package:mawqif/screens/user/user_home/user_product_detail.dart';
+import 'package:mawqif/screens/user/cart/add_to_cart.dart';
+import 'package:mawqif/screens/user/brands/product_catalogue.dart';
+
+// Admin Screens
 import '../screens/admin/views/admin_dashboard.dart';
 import '../screens/admin/views/brand_detail.dart';
+
+// Auth Screens
 import '../screens/auth/login/login.dart';
 import '../screens/auth/register/brand_logo.dart';
 import '../screens/auth/register/brand_register.dart';
 import '../screens/auth/register/user_register.dart';
+import '../screens/auth/register/password_prompt.dart';
 import '../screens/auth/forgot/forgot_password_screen.dart';
-import '../screens/brand/brand_home/edit_product_screen.dart';
-import '../screens/brand/brand_home/product_detail_screen.dart';
+
+// Splash & Welcome Screens
 import '../screens/splash/pre_splash_screen.dart';
 import '../screens/splash/splash_screen.dart';
-import 'package:mawqif/screens/user/user_dashboard.dart';
-import '../screens/user/user_home/user_product_detail.dart';
+import '../screens/user/user_home/wishlist/wishlist.dart';
 import '../screens/welcome/welcome_screen.dart';
-import '../screens/auth/register/password_prompt.dart';
 
 class AppRoutes {
   static const preSplash = '/';
@@ -45,6 +58,9 @@ class AppRoutes {
   static const promotionalBanner = '/promotionalBanner';
   static const bannerDetail = '/bannerDetail';
   static const thobeScreen = '/thobeScreen';
+  static const cartScreen = '/cart';
+  static const productCatalogue = '/productCatalogue';
+  static const wishlist = '/wishlist';
 
   static final routes = [
     GetPage(name: preSplash, page: () => const PreSplashScreen()),
@@ -62,12 +78,22 @@ class AppRoutes {
     GetPage(name: brandPending, page: () => BrandPendingScreen()),
     GetPage(name: brandReject, page: () => BrandRejectionReasonScreen()),
     GetPage(name: logoUpload, page: () => UploadLogoScreen()),
-    GetPage(name: productDetail, page: () => ProductDetailScreen(product: {})),
+
+    // Product Detail with arguments
+    GetPage(
+      name: productDetail,
+      page:
+          () =>
+              ProductDetailScreen(product: Get.arguments['productData'] ?? {}),
+    ),
     GetPage(name: userProductDetail, page: () => UserProductDetail()),
     GetPage(name: addProducts, page: () => AddProductScreen()),
     GetPage(name: editProducts, page: () => EditProductScreen()),
     GetPage(name: promotionalBanner, page: () => PromotionalBanner()),
     GetPage(name: bannerDetail, page: () => BannerDetailScreen()),
     GetPage(name: thobeScreen, page: () => ThobesScreen()),
+    GetPage(name: cartScreen, page: () => CartScreen()),
+    GetPage(name: productCatalogue, page: () => ProductCatalogueScreen()),
+    GetPage(name: wishlist, page: () => WishlistScreen()),
   ];
 }

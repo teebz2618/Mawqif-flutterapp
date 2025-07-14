@@ -109,20 +109,17 @@ class _BrandsScreenState extends State<BrandsScreen> {
 
                       return GestureDetector(
                         onTap: () {
-                          // Navigate to ProductCatalogueScreen with brand data
                           Get.to(
-                            () => ProductCatalogueScreen(
-                              brandData: {
-                                'id':
-                                    filteredBrands[index]
-                                        .id, // Firestore document ID
-                                'name': brand['name'] ?? 'Brand',
-                                'logoUrl': brand['logoUrl'] ?? '',
-                                'description': brand['description'] ?? '',
-                              },
-                            ),
+                            () => const ProductCatalogueScreen(),
+                            arguments: {
+                              'id': filteredBrands[index].id,
+                              'name': brand['name'] ?? 'Brand',
+                              'logoUrl': brand['logoUrl'] ?? '',
+                              'description': brand['description'] ?? '',
+                            },
                           );
                         },
+
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white,

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:country_picker/country_picker.dart';
-import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mawqif/screens/user/user_home/user_product_detail.dart';
 import 'package:mawqif/screens/user/user_home/wishlist/wishlist.dart';
-import '../../../services/currency_helper.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+import '../../../services/cart_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,19 +16,29 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final CurrencyHelper _currencyHelper = CurrencyHelper();
-  final User? _user = FirebaseAuth.instance.currentUser;
   int _selectedTab = 0; // 0 = Newest, 1 = Sale, 2 = Best Sellers
+  String _selectedCountry = "Pakistan"; // Default country
+  final User? _user = FirebaseAuth.instance.currentUser;
 
-  // Cache converted prices per product
-  final Map<String, Map<String, dynamic>> _priceCache = {};
+  @override
+  void initState() {
+    super.initState();
+    _autoDetectCountry();
+  }
 
+  void _autoDetectCountry() {
+    // In real app, you can use Geolocator or Localizations.localeOf(context)
+    setState(() {
+      _selectedCountry = "Pakistan";
+    });
+  }
+
+  // --- WISHLIST FUNCTIONS ---
   Future<void> _toggleWishlist(
     String productId,
     Map<String, dynamic> product,
   ) async {
     if (_user == null) return;
-
     final wishlistRef = FirebaseFirestore.instance
         .collection('wishlists')
         .doc(_user!.uid)
@@ -38,11 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final doc = await wishlistRef.get();
     if (doc.exists) {
-      // Remove from wishlist
       await wishlistRef.delete();
       Get.snackbar("Wishlist", "Removed from wishlist");
     } else {
-      // Add to wishlist
       await wishlistRef.set(product);
       Get.snackbar("Wishlist", "Added to wishlist");
     }
@@ -59,17 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
         .map((doc) => doc.exists);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeCurrency();
-  }
-
-  Future<void> _initializeCurrency() async {
-    await _currencyHelper.ensureInitialized();
-    setState(() {}); // Refresh UI after currency detection
-  }
-
   Stream<QuerySnapshot> getProductsStream() {
     Query query = FirebaseFirestore.instance.collection('products');
     if (_selectedTab == 0) {
@@ -84,10 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_currencyHelper.isInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -96,47 +88,51 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- Location & Wishlist ---
+                // --- Location, Title & Wishlist ---
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: Colors.grey),
-                        const SizedBox(width: 5),
-                        GestureDetector(
-                          onTap: () {
-                            showCountryPicker(
-                              context: context,
-                              showPhoneCode: false,
-                              onSelect: (country) {
-                                _currencyHelper.setCountry(country);
-                                setState(() {}); // Refresh UI
-                              },
-                            );
-                          },
-                          child: Row(
-                            children: [
-                              Text(_currencyHelper.countryName),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.arrow_drop_down,
-                                color: Colors.grey,
-                              ),
-                            ],
+                    // Location
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            color: Colors.brown.shade800,
+                            size: 22,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 2),
+                          Text(
+                            _selectedCountry,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.favorite_border, size: 26),
-                      onPressed: () {
-                        Get.to(() => WishlistScreen());
-                      },
+                    // Title
+                    Text(
+                      "Mawqif",
+                      style: const TextStyle(
+                        color: Colors.brown,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                      ),
+                    ),
+                    // Wishlist
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          icon: const Icon(Icons.favorite_border, size: 26),
+                          onPressed: () => Get.to(() => WishlistScreen()),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 9),
 
                 // --- Banner Carousel ---
                 StreamBuilder<QuerySnapshot>(
@@ -168,6 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         final title = data['title'] ?? "";
                         final subtitle = data['subtitle'] ?? "";
                         final link = data['link'] as Map<String, dynamic>?;
+
                         return GestureDetector(
                           onTap: () async {
                             if (link != null && link['type'] == 'product') {
@@ -235,7 +232,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-
                 const SizedBox(height: 20),
 
                 // --- Categories & Accessories ---
@@ -274,7 +270,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildAccessoryCard("Niqab", Icons.face_retouching_natural),
                   ],
                 ),
-
                 const SizedBox(height: 25),
 
                 // --- Product Tabs ---
@@ -286,7 +281,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildTab("Best Sellers", 2),
                   ],
                 ),
-
                 const SizedBox(height: 15),
 
                 // --- Products Grid ---
@@ -364,9 +358,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Text(
                 title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
                   fontSize: 14,
+                  color: Colors.brown.shade800,
                 ),
               ),
             ],
@@ -446,10 +442,6 @@ class _HomeScreenState extends State<HomeScreen> {
     required String field,
     required String value,
   }) {
-    if (!_currencyHelper.isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return StreamBuilder<QuerySnapshot>(
       stream:
           (field == 'accessories')
@@ -467,7 +459,6 @@ class _HomeScreenState extends State<HomeScreen> {
         final products = snapshot.data!.docs;
         if (products.isEmpty)
           return const Center(child: Text("No products found"));
-
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -489,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- PRODUCT CARD WITH CURRENCY HELPER & CACHE ---
+  // --- PRODUCT CARD WITH WISHLIST ---
   Widget _buildProductCard(
     Map<String, dynamic> product,
     String id, {
@@ -507,32 +498,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ? product['images'][0]
             : null;
     final brandName = product['brandName'] ?? 'Unknown Brand';
-
-    final currency = _currencyHelper.currency;
-
-    // Use cached price if available
-    final cached = _priceCache[id];
-    if (cached == null) {
-      // Calculate and store
-      _currencyHelper.convertPrice(basePrice).then((convertedPrice) {
-        double? discountedPrice =
-            discount > 0
-                ? convertedPrice - (convertedPrice * discount / 100)
-                : null;
-        _priceCache[id] = {
-          'convertedPrice': convertedPrice,
-          'discountedPrice': discountedPrice,
-        };
-        setState(() {});
-      });
-      return const SizedBox(
-        height: 200,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final convertedPrice = cached['convertedPrice'] as double;
-    final discountedPrice = cached['discountedPrice'] as double?;
+    double? discountedPrice =
+        discount > 0 ? basePrice - (basePrice * discount / 100) : null;
 
     Widget priceSection =
         discountedPrice != null
@@ -540,10 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  NumberFormat.currency(
-                    name: currency.code,
-                    symbol: currency.symbol,
-                  ).format(convertedPrice),
+                  "Rs.${basePrice.toStringAsFixed(2)}",
                   style: const TextStyle(
                     fontSize: 13,
                     color: Colors.grey,
@@ -554,10 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   children: [
                     Text(
-                      NumberFormat.currency(
-                        name: currency.code,
-                        symbol: currency.symbol,
-                      ).format(discountedPrice),
+                      "Rs.${discountedPrice.toStringAsFixed(2)}",
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -577,21 +538,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             )
-            : SizedBox(
-              height: 38,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  NumberFormat.currency(
-                    name: currency.code,
-                    symbol: currency.symbol,
-                  ).format(convertedPrice),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
+            : Text(
+              "Rs.${basePrice.toStringAsFixed(2)}",
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
               ),
             );
 
@@ -692,11 +644,80 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        if (product.isEmpty) return;
+
+                        // If colors exist, select the first one by default
+                        String? selectedColor;
+                        if ((product['colors']?.isNotEmpty ?? false)) {
+                          selectedColor = product['colors'][0].toString();
+                        }
+
+                        // If sizes exist, select the first one by default
+                        String? selectedSize;
+                        if ((product['sizes']?.isNotEmpty ?? false)) {
+                          selectedSize = product['sizes'][0].toString();
+                        }
+
+                        final cartItem = {
+                          'id': id,
+                          'title': product['title'],
+                          'price': product['price'] ?? 0.0,
+                          'discount': product['discount'] ?? 0.0,
+                          'image':
+                              (product['images'] != null &&
+                                      product['images'].isNotEmpty)
+                                  ? product['images'][0]
+                                  : '',
+                          'quantity': 1,
+                          'selectedColor': selectedColor,
+                          'selectedSize': selectedSize,
+                        };
+
+                        CartService.to.addToCart(cartItem);
+
+                        Get.snackbar(
+                          "Success",
+                          "Product added to cart successfully!",
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.green.shade600,
+                          colorText: Colors.white,
+                          margin: const EdgeInsets.only(
+                            bottom: 70,
+                            left: 12,
+                            right: 12,
+                          ),
+                          duration: const Duration(seconds: 2),
+                          mainButton: TextButton(
+                            onPressed: () => Get.toNamed('/cart'),
+                            child: const Text(
+                              "View Cart",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                       child: const Text(
                         "Add to Cart",
                         style: TextStyle(fontSize: 12),
                       ),
+                    ),
+
+                    StreamBuilder<bool>(
+                      stream: _isInWishlist(id),
+                      builder: (context, snapshot) {
+                        bool isFav = snapshot.data ?? false;
+                        return IconButton(
+                          icon: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => _toggleWishlist(id, product),
+                        );
+                      },
                     ),
                   ],
                 ),

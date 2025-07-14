@@ -137,10 +137,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
     setState(() => isLoading = true);
 
     final doc =
-    await FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .get();
+        await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .get();
     if (doc.exists) {
       final data = doc.data()!;
       productData = Map<String, dynamic>.from(data);
@@ -176,28 +176,28 @@ class _EditProductScreenState extends State<EditProductScreen> {
         context: context,
         builder:
             (context) => AlertDialog(
-          title: const Text('Discard Changes?'),
-          content: const Text(
-            'You have unsaved changes. Do you want to discard them and leave?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'Wait',
-                style: TextStyle(color: Colors.black),
+              title: const Text('Discard Changes?'),
+              content: const Text(
+                'You have unsaved changes. Do you want to discard them and leave?',
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text(
+                    'Wait',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: themeColor),
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text(
+                    'Discard',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: themeColor),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Discard',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
       );
       return discard ?? false;
     }
@@ -233,33 +233,33 @@ class _EditProductScreenState extends State<EditProductScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-        title: const Text('Pick a color'),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: currentColor,
-            onColorChanged: (Color color) => currentColor = color,
+            title: const Text('Pick a color'),
+            content: SingleChildScrollView(
+              child: ColorPicker(
+                pickerColor: currentColor,
+                onColorChanged: (Color color) => currentColor = color,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (existingColor != null) {
+                    final idx = selectedColors.indexOf(existingColor);
+                    if (idx != -1)
+                      setState(() => selectedColors[idx] = currentColor);
+                  } else {
+                    toggleColorSelection(currentColor);
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Add Color'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (existingColor != null) {
-                final idx = selectedColors.indexOf(existingColor);
-                if (idx != -1)
-                  setState(() => selectedColors[idx] = currentColor);
-              } else {
-                toggleColorSelection(currentColor);
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Text('Add Color'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -392,405 +392,405 @@ class _EditProductScreenState extends State<EditProductScreen> {
           backgroundColor: Colors.white,
         ),
         body:
-        _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Category Dropdown
-              Text(
-                'Product Category',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: themeColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _boxed(
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: selectedCategory,
-                    hint: Text(
-                      'Select Category',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    isExpanded: true,
-                    items:
-                    availableCategories
-                        .map(
-                          (c) => DropdownMenuItem(
-                        value: c,
-                        child: Text(c),
-                      ),
-                    )
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() {
-                        selectedCategory = v;
-                        if (selectedCategory != 'Thobes')
-                          selectedGender = null;
-                        selectedAccessories.clear();
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Gender (Thobes only)
-              if (selectedCategory == 'Thobes') ...[
-                Text(
-                  'Select Gender',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: themeColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _boxed(
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedGender,
-                      hint: Text(
-                        'Select Gender',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                      isExpanded: true,
-                      items:
-                      availableGenders
-                          .map(
-                            (g) => DropdownMenuItem(
-                          value: g,
-                          child: Text(g),
-                        ),
-                      )
-                          .toList(),
-                      onChanged: (g) {
-                        setState(() {
-                          selectedGender = g;
-                          selectedAccessories.clear();
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Title
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Product Title',
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Description
-              TextField(
-                controller: descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Price
-              TextField(
-                controller: priceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Price (\$)',
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Accessories
-              if (availableAccessories.isNotEmpty) ...[
-                Text(
-                  'Accessories (Optional)',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: themeColor,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children:
-                  availableAccessories.map((accessory) {
-                    final isSelected = selectedAccessories.contains(
-                      accessory,
-                    );
-                    return ChoiceChip(
-                      label: Text(accessory),
-                      selected: isSelected,
-                      selectedColor: themeColor.withOpacity(0.8),
-                      backgroundColor: Colors.grey[200],
-                      labelStyle: TextStyle(
-                        color:
-                        isSelected
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                      onSelected:
-                          (_) => toggleSelection(
-                        selectedAccessories,
-                        accessory,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Images
-              Text(
-                'Product Images',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: themeColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  ...productImages.map((img) {
-                    final file = File(img.path);
-                    final widgetImage =
-                    file.existsSync()
-                        ? Image.file(
-                      file,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                    )
-                        : Image.network(
-                      img.path,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (_, __, ___) => Container(
-                        width: 100,
-                        height: 100,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.broken_image,
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Category Dropdown
+                      Text(
+                        'Product Category',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: themeColor,
                         ),
                       ),
-                    );
-                    return Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: widgetImage,
+                      const SizedBox(height: 8),
+                      _boxed(
+                        DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: selectedCategory,
+                            hint: Text(
+                              'Select Category',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            isExpanded: true,
+                            items:
+                                availableCategories
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c,
+                                        child: Text(c),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                selectedCategory = v;
+                                if (selectedCategory != 'Thobes')
+                                  selectedGender = null;
+                                selectedAccessories.clear();
+                              });
+                            },
+                          ),
                         ),
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () => removeImage(img),
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Gender (Thobes only)
+                      if (selectedCategory == 'Thobes') ...[
+                        Text(
+                          'Select Gender',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: themeColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _boxed(
+                          DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedGender,
+                              hint: Text(
+                                'Select Gender',
+                                style: TextStyle(color: Colors.grey.shade600),
                               ),
-                              padding: const EdgeInsets.all(2),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                              isExpanded: true,
+                              items:
+                                  availableGenders
+                                      .map(
+                                        (g) => DropdownMenuItem(
+                                          value: g,
+                                          child: Text(g),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (g) {
+                                setState(() {
+                                  selectedGender = g;
+                                  selectedAccessories.clear();
+                                });
+                              },
                             ),
                           ),
                         ),
+                        const SizedBox(height: 12),
                       ],
-                    );
-                  }).toList(),
-                  GestureDetector(
-                    onTap: pickImages,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: themeColor, width: 2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.add_a_photo, color: themeColor),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
 
-              // Colors
-              Text(
-                'Available Colors',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: themeColor,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ...selectedColors.map((color) {
-                    return GestureDetector(
-                      onTap: () => showColorPicker(color),
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 2,
-                              ),
-                            ),
+                      // Title
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Product Title',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Description
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Price
+                      TextField(
+                        controller: priceController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Price (\Rs.)',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Accessories
+                      if (availableAccessories.isNotEmpty) ...[
+                        Text(
+                          'Accessories (Optional)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: themeColor,
                           ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap:
-                                  () => setState(
-                                    () => selectedColors.remove(color),
-                              ),
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children:
+                              availableAccessories.map((accessory) {
+                                final isSelected = selectedAccessories.contains(
+                                  accessory,
+                                );
+                                return ChoiceChip(
+                                  label: Text(accessory),
+                                  selected: isSelected,
+                                  selectedColor: themeColor.withOpacity(0.8),
+                                  backgroundColor: Colors.grey[200],
+                                  labelStyle: TextStyle(
+                                    color:
+                                        isSelected
+                                            ? Colors.white
+                                            : Colors.black,
+                                  ),
+                                  onSelected:
+                                      (_) => toggleSelection(
+                                        selectedAccessories,
+                                        accessory,
+                                      ),
+                                );
+                              }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // Images
+                      Text(
+                        'Product Images',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: themeColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          ...productImages.map((img) {
+                            final file = File(img.path);
+                            final widgetImage =
+                                file.existsSync()
+                                    ? Image.file(
+                                      file,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    )
+                                    : Image.network(
+                                      img.path,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (_, __, ___) => Container(
+                                            width: 100,
+                                            height: 100,
+                                            color: Colors.grey[300],
+                                            child: const Icon(
+                                              Icons.broken_image,
+                                            ),
+                                          ),
+                                    );
+                            return Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: widgetImage,
                                 ),
-                                padding: const EdgeInsets.all(2),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 18,
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: () => removeImage(img),
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      padding: const EdgeInsets.all(2),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                              ],
+                            );
+                          }).toList(),
+                          GestureDetector(
+                            onTap: pickImages,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: themeColor, width: 2),
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              child: Icon(Icons.add_a_photo, color: themeColor),
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
-                  GestureDetector(
-                    onTap: () => showColorPicker(),
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: themeColor, width: 2),
-                        borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 16),
+
+                      // Colors
+                      Text(
+                        'Available Colors',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: themeColor,
+                        ),
                       ),
-                      child: Icon(Icons.add, color: themeColor),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ...selectedColors.map((color) {
+                            return GestureDetector(
+                              onTap: () => showColorPicker(color),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: GestureDetector(
+                                      onTap:
+                                          () => setState(
+                                            () => selectedColors.remove(color),
+                                          ),
+                                      child: Container(
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        padding: const EdgeInsets.all(2),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          GestureDetector(
+                            onTap: () => showColorPicker(),
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: themeColor, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(Icons.add, color: themeColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-              // Sizes
-              Text(
-                'Available Sizes',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: themeColor,
+                      // Sizes
+                      Text(
+                        'Available Sizes',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: themeColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children:
+                            allSizes.map((size) {
+                              final isSelected = selectedSizes.contains(size);
+                              return ChoiceChip(
+                                label: Text(size),
+                                selected: isSelected,
+                                selectedColor: themeColor.withOpacity(0.8),
+                                backgroundColor: Colors.grey[200],
+                                labelStyle: TextStyle(
+                                  color:
+                                      isSelected ? Colors.white : Colors.black,
+                                ),
+                                onSelected:
+                                    (_) => toggleSelection(selectedSizes, size),
+                              );
+                            }).toList(),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Flash Sale
+                      SwitchListTile(
+                        title: const Text("Flash Sale"),
+                        value: isFlashSale,
+                        activeColor: themeColor,
+                        onChanged:
+                            (v) => setState(() {
+                              isFlashSale = v;
+                              if (!v) discountController.clear();
+                            }),
+                      ),
+                      if (isFlashSale)
+                        TextField(
+                          controller: discountController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Discount (%)',
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+
+                      // New Collection & Best Seller
+                      SwitchListTile(
+                        title: const Text("New Collection"),
+                        value: isNewCollection,
+                        activeColor: themeColor,
+                        onChanged: (v) => setState(() => isNewCollection = v),
+                      ),
+                      SwitchListTile(
+                        title: const Text("Best Seller"),
+                        value: isBestSeller,
+                        activeColor: themeColor,
+                        onChanged: (v) => setState(() => isBestSeller = v),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Save Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: themeColor,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: updateProduct,
+                          child: const Text(
+                            "Update Product",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children:
-                allSizes.map((size) {
-                  final isSelected = selectedSizes.contains(size);
-                  return ChoiceChip(
-                    label: Text(size),
-                    selected: isSelected,
-                    selectedColor: themeColor.withOpacity(0.8),
-                    backgroundColor: Colors.grey[200],
-                    labelStyle: TextStyle(
-                      color:
-                      isSelected ? Colors.white : Colors.black,
-                    ),
-                    onSelected:
-                        (_) => toggleSelection(selectedSizes, size),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-
-              // Flash Sale
-              SwitchListTile(
-                title: const Text("Flash Sale"),
-                value: isFlashSale,
-                activeColor: themeColor,
-                onChanged:
-                    (v) => setState(() {
-                  isFlashSale = v;
-                  if (!v) discountController.clear();
-                }),
-              ),
-              if (isFlashSale)
-                TextField(
-                  controller: discountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Discount (%)',
-                  ),
-                ),
-              const SizedBox(height: 16),
-
-              // New Collection & Best Seller
-              SwitchListTile(
-                title: const Text("New Collection"),
-                value: isNewCollection,
-                activeColor: themeColor,
-                onChanged: (v) => setState(() => isNewCollection = v),
-              ),
-              SwitchListTile(
-                title: const Text("Best Seller"),
-                value: isBestSeller,
-                activeColor: themeColor,
-                onChanged: (v) => setState(() => isBestSeller = v),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: themeColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: updateProduct,
-                  child: const Text(
-                    "Update Product",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:mawqif/screens/user/user_home/user_product_detail.dart';
-import 'package:country_picker/country_picker.dart';
-import 'package:intl/intl.dart';
-import '../../../services/currency_helper.dart';
 
 class ThobesScreen extends StatefulWidget {
   const ThobesScreen({super.key});
@@ -15,21 +12,6 @@ class ThobesScreen extends StatefulWidget {
 
 class _ThobesScreenState extends State<ThobesScreen> {
   int _selectedGenderTab = 0; // 0 = Male, 1 = Female
-  final CurrencyHelper _currencyHelper = CurrencyHelper();
-
-  // Cache converted prices to reduce FutureBuilder reload flicker
-  final Map<String, Map<String, dynamic>> _priceCache = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeCurrency();
-  }
-
-  Future<void> _initializeCurrency() async {
-    await _currencyHelper.ensureInitialized();
-    setState(() {}); // refresh UI after initialization
-  }
 
   Stream<QuerySnapshot> getThobesStream() {
     final gender = _selectedGenderTab == 0 ? "Male" : "Female";
@@ -44,25 +26,7 @@ class _ThobesScreenState extends State<ThobesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Thobes"),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.location_on),
-            onPressed: () {
-              showCountryPicker(
-                context: context,
-                showPhoneCode: false,
-                onSelect: (Country country) {
-                  _currencyHelper.setCountry(country);
-                  setState(() {});
-                },
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text("Thobes"), centerTitle: true),
       body: Column(
         children: [
           // --- Gender Tabs ---
@@ -141,7 +105,7 @@ class _ThobesScreenState extends State<ThobesScreen> {
     );
   }
 
-  // --- Product Card with Cached Currency Conversion ---
+  // --- Product Card (Prices in PKR only) ---
   Widget _buildProductCard(Map<String, dynamic> product, String id) {
     final title = product['title'] ?? 'No Title';
     final description =
@@ -150,178 +114,127 @@ class _ThobesScreenState extends State<ThobesScreen> {
             : 'No description available';
     final basePrice = (product['price'] as num?)?.toDouble() ?? 0.0;
     final discount = (product['discount'] as num?)?.toDouble() ?? 0.0;
+    final discountedPrice =
+        discount > 0 ? basePrice - (basePrice * discount / 100) : null;
     final imageUrl =
         (product['images'] != null && (product['images'] as List).isNotEmpty)
             ? product['images'][0]
             : null;
 
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _getCachedPrice(id, basePrice, discount),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final convertedPrice = snapshot.data!['convertedPrice'] as double;
-        final discountedPrice = snapshot.data!['discountedPrice'] as double?;
-        final currency = _currencyHelper.currency;
-
-        return GestureDetector(
-          onTap:
-              () => Get.to(
-                () => const UserProductDetail(),
-                arguments: {'productId': id, 'productData': product},
-              ),
-          child: Container(
-            padding: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300, width: 0.5),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image
-                SizedBox(
-                  height: 190,
-                  width: double.infinity,
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 0.5,
-                      ),
-                    ),
-                    child:
-                        imageUrl != null
-                            ? ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Image.network(imageUrl, fit: BoxFit.cover),
-                            )
-                            : const Icon(
-                              Icons.image_outlined,
-                              size: 35,
-                              color: Colors.grey,
-                            ),
-                  ),
+    return GestureDetector(
+      onTap:
+          () => Get.to(
+            () => const UserProductDetail(),
+            arguments: {'productId': id, 'productData': product},
+          ),
+      child: Container(
+        padding: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            SizedBox(
+              height: 190,
+              width: double.infinity,
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.shade300, width: 0.5),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
+                child:
+                    imageUrl != null
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.network(imageUrl, fit: BoxFit.cover),
+                        )
+                        : const Icon(
+                          Icons.image_outlined,
+                          size: 35,
                           color: Colors.grey,
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      discountedPrice != null
-                          ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                NumberFormat.currency(
-                                  locale: 'en_US',
-                                  name: currency.code,
-                                  symbol: currency.symbol,
-                                ).format(convertedPrice),
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Row(
-                                children: [
-                                  Text(
-                                    NumberFormat.currency(
-                                      locale: 'en_US',
-                                      name: currency.code,
-                                      symbol: currency.symbol,
-                                    ).format(discountedPrice),
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 7),
-                                  Text(
-                                    "${discount.toStringAsFixed(0)}% OFF",
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          )
-                          : Text(
-                            NumberFormat.currency(
-                              locale: 'en_US',
-                              name: currency.code,
-                              symbol: currency.symbol,
-                            ).format(convertedPrice),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Price (PKR only)
+                  discountedPrice != null
+                      ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Rs. ${basePrice.toStringAsFixed(0)}",
                             style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                              fontSize: 13,
+                              color: Colors.grey,
+                              decoration: TextDecoration.lineThrough,
                             ),
                           ),
-                    ],
-                  ),
-                ),
-              ],
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(
+                                "Rs. ${discountedPrice.toStringAsFixed(0)}",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              const SizedBox(width: 7),
+                              Text(
+                                "${discount.toStringAsFixed(0)}% OFF",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                      : Text(
+                        "Rs. ${basePrice.toStringAsFixed(0)}",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
-  }
-
-  // --- Get Cached Price ---
-  Future<Map<String, dynamic>> _getCachedPrice(
-    String productId,
-    double basePrice,
-    double discount,
-  ) async {
-    if (_priceCache.containsKey(productId)) {
-      return _priceCache[productId]!;
-    }
-    await _currencyHelper.ensureInitialized();
-    final convertedPrice = await _currencyHelper.convertPrice(basePrice);
-    final discountedPrice =
-        discount > 0
-            ? convertedPrice - (convertedPrice * discount / 100)
-            : null;
-
-    final priceData = {
-      'convertedPrice': convertedPrice,
-      'discountedPrice': discountedPrice,
-    };
-    _priceCache[productId] = priceData;
-    return priceData;
   }
 }
